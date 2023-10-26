@@ -612,10 +612,10 @@ ${(toDo)}
         if (!userArr[0].skill) return `你们的宝可梦必须全部装备上对战技能哦~`
         if (userArr[0].gold < 500||tarArr[0].battleTimes==0) { return (`你的金币不足或者对方的宝可梦还在恢复，无法对战`) }else if(session.userId==user){return (`你不能对自己发动对战`)}else if(tarArr[0].length==0||tarArr[0].monster_1=='0'){return (`对方还没有宝可梦`)}
         session.send(`你支付了500金币，对${(h('at', { id: (userId) }))}发动了宝可梦对战`)
+        await ctx.database.set('pokebattle', { id: userId }, {
+          battleTimes: { $subtract: [{ $: 'battleTimes' }, 1] },
+        })
         if(tarArr[0].battleTimes==1){
-          await ctx.database.set('pokebattle', { id: userId }, {
-            battleTimes: { $subtract: [{ $: 'battleTimes' }, 1] },
-          })
           setTimeout(async () => {
             await ctx.database.set('pokebattle', { id: userId }, {
               battleTimes:3,
