@@ -610,7 +610,7 @@ ${(toDo)}
         const userArr = await ctx.database.get('pokebattle', { id: session.userId })
         const tarArr = await ctx.database.get('pokebattle', {id:userId })
         if (!userArr[0].skill) return `你们的宝可梦必须全部装备上对战技能哦~`
-        if (userArr[0].gold < 500||tarArr[0].battleTimes==0) { return (`你的金币不足或者对方的宝可梦还在恢复，无法对战`) }else if(session.userId==user){return (`你不能对自己发动对战`)}else if(tarArr[0].length==0||tarArr[0].monster_1=='0'){return (`对方还没有宝可梦`)}
+        if (userArr[0].gold < 500||tarArr[0].battleTimes==0) { return (`你的金币不足或者对方的宝可梦还在恢复，无法对战`) }else if(session.userId==user){return (`你不能对自己发动对战`)}else if(!tarArr[0].length||tarArr[0].monster_1=='0'){return (`对方还没有宝可梦`)}
         session.send(`你支付了500金币，对${(h('at', { id: (userId) }))}发动了宝可梦对战`)
         await ctx.database.set('pokebattle', { id: userId }, {
           battleTimes: { $subtract: [{ $: 'battleTimes' }, 1] },
@@ -639,10 +639,10 @@ ${(toDo)}
             gold: { $add: [{ $: 'gold' }, 150] },
           })
         }
-        session.send(`${battlelog}`)
+        session.send(`${battlelog}\n${losergold}`)
         return `获胜者是${h('at', { id: (winner) })}
 获得技能扭蛋机代币+1
-`} catch { return ('请选择一个@目标，指令与@之间需要空格，例如：对战 @Mai') }
+`} catch(e) { logger.info(e) }
     })
   ctx.command('解压图包文件')
     .action(async () => {
@@ -722,6 +722,16 @@ ${(toDo)}
         skill: Number(pokemonCal.findskillId(skill)),
       })
       return `${h('at', { id: (session.userId) })}成功装备了【${skill}】技能`
+    })
+    ctx.command('查询技能 <skill>')
+    .action(async ({ session },skill) => {
+      const userArr = await ctx.database.get('pokebattle', { id: session.userId })
+      try{if(!userArr[0].skillbag[2]&&!skill) return `你的技能还太少，有什么先用着吧，或者输入你想查询的技能名字 例如：【查询技能 大爆炸】`
+      if (!skill) return (pokemonCal.skillinfo(userArr[0].skillbag))
+      return `${skill}的技能信息：\n威力：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].Dam}\n描述：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].descript}`}catch(e){
+   logger.info(e)
+        return `输入错误，没有这个技能哦`
+      }
     })
       
 }

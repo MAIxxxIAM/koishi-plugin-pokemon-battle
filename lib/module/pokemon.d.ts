@@ -50,5 +50,6 @@ declare const pokemonCal: {
     pokemonskill(a: number): number;
     skillbag(a: string[]): string;
     findskillId(a: string): any;
+    skillinfo(a: string[]): string | any[];
 };
 export default pokemonCal;
