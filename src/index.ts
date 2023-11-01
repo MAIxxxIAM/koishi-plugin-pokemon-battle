@@ -12,7 +12,7 @@ import * as yauzl from './module/yauzl/index.js';
 
 export const name = 'pokemon-battle'
 
-export const using = ['database', 'echarts']
+export const inject = ['database', 'echarts']
 export const usage = `### 10.20 新增功能
 - 更明显的经验条显示
 - 放生获得经验
@@ -32,9 +32,15 @@ export const usage = `### 10.20 新增功能
 - 增加了技能背包【技能背包】
 - 增加了技能机使用指令【装备技能 <技能名字>】
 - 可能会出现一下无法预料的bug（原谅我的屎山代码
+
+### 11.1
+- 修复了一些bug
+- 提高了对战代价
+- 增加了管理员，防止解包指令触发
 `
 
 export interface Config {
+  管理员: string
   签到指令别名: string
   捕捉指令别名: string
   杂交指令别名: string
@@ -49,7 +55,8 @@ export const Config = Schema.intersect([
     捕捉指令别名: Schema.string().default('捕捉宝可梦'),
     杂交指令别名: Schema.string().default('杂交宝可梦'),
     查看信息指令别名: Schema.string().default('查看信息'),
-    放生指令别名: Schema.string().default('放生')
+    放生指令别名: Schema.string().default('放生'),
+    管理员: Schema.string().default(''),
   }),
   Schema.object({
     签到获得个数: Schema.number().default(2),
@@ -122,15 +129,15 @@ export async function apply(ctx, config: Config) {
         if (dateNow == Math.floor((dateToday + 28800) / 86400)) {
           session.send('今天你已经签到过了哟~快去捕捉属于你的宝可梦吧')
         } else {
-          if(userArr[0].monster_1=='null') {
+          if (userArr[0].monster_1 == 'null') {
             await ctx.database.set('pokebattle', { id: session.userId }, {
-              monster_1:'0'
+              monster_1: '0'
             })
-          if(!userArr[0].skill){
-            await ctx.database.set('pokebattle', { id: session.userId }, {
-              skill:0
-            })
-          }
+            if (!userArr[0].skill) {
+              await ctx.database.set('pokebattle', { id: session.userId }, {
+                skill: 0
+              })
+            }
           }
           let expGet = pokemonCal.mathRandomInt(exptolv.exp_lv[userArr[0].level].exp * 0.05, exptolv.exp_lv[userArr[0].level].exp * 0.2)
           let expNew = pokemonCal.expCal(userArr[0].level, userArr[0].exp + expGet)[1]
@@ -143,18 +150,20 @@ export async function apply(ctx, config: Config) {
           } else {
             ToDo = '快去杂交出属于你的宝可梦吧'
           }
-          try {await ctx.database.set('pokebattle', { id: session.userId }, {
-            captureTimes: { $add: [{ $: 'captureTimes' }, config.签到获得个数] },
-            battleTimes: 3,
-            date: dateToday,
-            level: lvNew,
-            exp: expNew,
-            battlename: pokemonCal.pokemonlist(userArr[0].monster_1),
-            base: pokemonCal.pokeBase(userArr[0].monster_1 ),
-            power: pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), lvNew),
-            coin: { $add: [{ $: 'coin' }, config.签到获得个数] },
-            gold: { $add: [{ $: 'gold' }, 3000] },
-          })}catch(e){return `请再试一次`}
+          try {
+            await ctx.database.set('pokebattle', { id: session.userId }, {
+              captureTimes: { $add: [{ $: 'captureTimes' }, config.签到获得个数] },
+              battleTimes: 3,
+              date: dateToday,
+              level: lvNew,
+              exp: expNew,
+              battlename: pokemonCal.pokemonlist(userArr[0].monster_1),
+              base: pokemonCal.pokeBase(userArr[0].monster_1),
+              power: pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), lvNew),
+              coin: { $add: [{ $: 'coin' }, config.签到获得个数] },
+              gold: { $add: [{ $: 'gold' }, 3000] },
+            })
+          } catch (e) { return `请再试一次` }
           session.send(`${(h('at', { id: (session.userId) }))}
 精灵球+${(config.签到获得个数)}
 经验+${(expGet)}
@@ -386,8 +395,8 @@ ${pokemonCal.pokemomPic(poke, false)}
           let comm = zajiao.split(' ')
           let pokeM = bagspace[Number(comm[0]) - 1]
           let pokeW = bagspace[Number(comm[1]) - 1]
-          let tip=''
-          if (pokeM=='150.150'&&pokeW=='150.150') tip='超梦是人造宝可梦，自交会导致基因断裂，成为梦幻形态'
+          let tip = ''
+          if (pokeM == '150.150' && pokeW == '150.150') tip = '超梦是人造宝可梦，自交会导致基因断裂，成为梦幻形态'
           dan = pokemonCal.pokemonzajiao(pokeM, pokeW)
           if (dan == 0 || dan[0] == 0) {
             //处理杂交错误
@@ -547,7 +556,7 @@ ${pokemonCal.pokemomPic(userArr[0].monster_1, true)}
         let RandomBall = pokemonCal.mathRandomInt(0, 100)
         let expGet = pokemonCal.mathRandomInt(exptolv.exp_lv[userArr[0].level].exp * 0.05, exptolv.exp_lv[userArr[0].level].exp * 0.2)
         let expNew = pokemonCal.expCal(userArr[0].level, userArr[0].exp + expGet)[1]
-        let goldGet=pokemonCal.mathRandomInt(100,500)
+        let goldGet = pokemonCal.mathRandomInt(100, 500)
         let lvNew = pokemonCal.expCal(userArr[0].level, userArr[0].exp + expGet)[0]
         if (RandomBall > 50) {
           getBall = 1
@@ -561,7 +570,7 @@ ${pokemonCal.pokemomPic(userArr[0].monster_1, true)}
           level: lvNew,
           exp: expNew,
           power: pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), lvNew),
-          gold:{ $add: [{ $: 'gold' }, goldGet] },
+          gold: { $add: [{ $: 'gold' }, goldGet] },
         })
         return `
         ${(h('at', { id: (session.userId) }))}你将
@@ -605,31 +614,39 @@ ${(toDo)}
   ctx.command('对战 <user:user>')
     .action(async ({ session }, user) => {
       try {
-        let losergold=''
-        let [platform, userId] = user.split(':')  
+        let losergold = ''
+        let [platform, userId] = user.split(':')
         const userArr = await ctx.database.get('pokebattle', { id: session.userId })
-        const tarArr = await ctx.database.get('pokebattle', {id:userId })
+        const tarArr = await ctx.database.get('pokebattle', { id: userId })
         if (userArr[0].length == 0) return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
         if (!userArr[0].skill) return `你们的宝可梦必须全部装备上对战技能哦~`
-        if (userArr[0].gold < 500||tarArr[0].battleTimes==0) { return (`你的金币不足或者对方的宝可梦还在恢复，无法对战`) }else if(session.userId==user){return (`你不能对自己发动对战`)}else if(tarArr[0].length == 0||tarArr[0].monster_1=='0'){return (`对方还没有宝可梦`)}
-        session.send(`你支付了500金币，对${(h('at', { id: (userId) }))}发动了宝可梦对战`)
+        if (userArr[0].gold < 1000) {
+          return (`你的金币不足，无法对战`)
+        } else if (tarArr[0].battleTimes == 0) {
+          return `对方的宝可梦还在恢复，无法对战`
+        } else if (session.userId == userId) {
+          return (`你不能对自己发动对战`)
+        } else if (tarArr[0].length == 0 || tarArr[0].monster_1 == '0') {
+          return (`对方还没有宝可梦`)
+        }
+        session.send(`你支付了1000金币，对${(h('at', { id: (userId) }))}发动了宝可梦对战`)
         await ctx.database.set('pokebattle', { id: userId }, {
           battleTimes: { $subtract: [{ $: 'battleTimes' }, 1] },
         })
-        if(tarArr[0].battleTimes==1){
+        if (tarArr[0].battleTimes == 1) {
           setTimeout(async () => {
             await ctx.database.set('pokebattle', { id: userId }, {
-              battleTimes:3,
+              battleTimes: 3,
             })
-          },Time.hour*2)
+          }, Time.hour * 2)
           session.send(`${h('at', { id: (userId) })}你的宝可梦已经筋疲力尽，2小时后恢复完毕`)
         }
-        let battle=pokemonCal.pokebattle(userArr, tarArr)
-        let battlelog =battle[0]
+        let battle = pokemonCal.pokebattle(userArr, tarArr)
+        let battlelog = battle[0]
         let winner = battle[1]
-        let loser =battle[2]
+        let loser = battle[2]
         await ctx.database.set('pokebattle', { id: session.userId }, {
-          gold: { $subtract: [{ $: 'gold' }, 500] },
+          gold: { $subtract: [{ $: 'gold' }, 1000] },
         })
         await ctx.database.set('pokebattle', { id: winner }, {
           coin: { $add: [{ $: 'coin' }, 1] },
@@ -637,16 +654,17 @@ ${(toDo)}
         if (loser == session.userId) {
           losergold = `${(h('at', { id: (session.userId) }))}你输了，金币返还150`
           await ctx.database.set('pokebattle', { id: session.userId }, {
-            gold: { $add: [{ $: 'gold' }, 150] },
+            gold: { $add: [{ $: 'gold' }, 100] },
           })
         }
         session.send(`${battlelog}\n${losergold}`)
         return `获胜者是${h('at', { id: (winner) })}
 获得技能扭蛋机代币+1
-`} catch(e) { logger.info(e) }
+`} catch (e) { logger.info(e) }
     })
   ctx.command('解压图包文件')
-    .action(async () => {
+    .action(async ({session}) => {
+      if(session.userId!=config.管理员) return `权限不足`
       const zipFilePath = './downloads/bucket1-h3vhg7cvhz443zb1ga819kmpzabblyzv/image.zip'
       const targetFolder = './'
       if (!fs.existsSync(targetFolder)) {
@@ -685,19 +703,19 @@ ${(toDo)}
         coin: { $subtract: [{ $: 'coin' }, 1] },
       })
       let getskill = pokemonCal.pokemonskill(userArr[0].level)
-      if(userArr[0].skill==0){
+      if (userArr[0].skill == 0) {
         userArr[0].skillbag.push(String(getskill))
         await ctx.database.set('pokebattle', { id: session.userId }, {
           skill: getskill,
           skillbag: userArr[0].skillbag
         })
         return `${h('at', { id: (session.userId) })}✨✨✨恭喜你获得了【${(skillMachine.skill[getskill].skill)}】技能✨✨✨`
-      }else if(userArr[0].skillbag.includes(String(getskill))){
+      } else if (userArr[0].skillbag.includes(String(getskill))) {
         await ctx.database.set('pokebattle', { id: session.userId }, {
           gold: { $add: [{ $: 'gold' }, 350] },
         })
         return `${h('at', { id: (session.userId) })}你已经有【${(skillMachine.skill[getskill].skill)}】技能了，转换为🪙金币+350`
-      }else{
+      } else {
         userArr[0].skillbag.push(String(getskill))
         await ctx.database.set('pokebattle', { id: session.userId }, {
           skillbag: userArr[0].skillbag
@@ -706,33 +724,35 @@ ${(toDo)}
       }
 
     })
-    ctx.command('技能背包')
+  ctx.command('技能背包')
     .action(async ({ session }) => {
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
       if (userArr.length == 0) return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
-      return pokemonCal.skillbag(userArr[0].skillbag)?`${h('at', { id: (session.userId) })}你的技能背包：\n${pokemonCal.skillbag(userArr[0].skillbag)}`:`你还没有技能哦\n签到领取代币到【技能扭蛋机】抽取技能吧`
+      return pokemonCal.skillbag(userArr[0].skillbag) ? `${h('at', { id: (session.userId) })}你的技能背包：\n${pokemonCal.skillbag(userArr[0].skillbag)}` : `你还没有技能哦\n签到领取代币到【技能扭蛋机】抽取技能吧`
     })
-    ctx.command('装备技能 <skill>')
-    .action(async ({ session },skill) => {
+  ctx.command('装备技能 <skill>')
+    .action(async ({ session }, skill) => {
       if (!skill) return `请输入技能名称 例如：【装备技能 大爆炸】`
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
       if (userArr.length == 0) return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
-      if(!userArr[0].skillbag.includes(String(pokemonCal.findskillId(skill))))return `${h('at', { id: (session.userId) })}你还没有这个技能哦`
+      if (!userArr[0].skillbag.includes(String(pokemonCal.findskillId(skill)))) return `${h('at', { id: (session.userId) })}你还没有这个技能哦`
       console.info(userArr[0].skillbag.includes(String(pokemonCal.findskillId(skill))))
       await ctx.database.set('pokebattle', { id: session.userId }, {
         skill: Number(pokemonCal.findskillId(skill)),
       })
       return `${h('at', { id: (session.userId) })}成功装备了【${skill}】技能`
     })
-    ctx.command('查询技能 <skill>')
-    .action(async ({ session },skill) => {
+  ctx.command('查询技能 <skill>')
+    .action(async ({ session }, skill) => {
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
-      try{if(!userArr[0].skillbag[2]&&!skill) return `你的技能还太少，有什么先用着吧，或者输入你想查询的技能名字 例如：【查询技能 大爆炸】`
-      if (!skill) return (pokemonCal.skillinfo(userArr[0].skillbag))
-      return `${skill}的技能信息：\n威力：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].Dam}\n描述：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].descript}`}catch(e){
-   logger.info(e)
+      try {
+        if (!userArr[0].skillbag[2] && !skill) return `你的技能还太少，有什么先用着吧，或者输入你想查询的技能名字 例如：【查询技能 大爆炸】`
+        if (!skill) return (pokemonCal.skillinfo(userArr[0].skillbag))
+        return `${skill}的技能信息：\n威力：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].Dam}\n描述：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].descript}`
+      } catch (e) {
+        logger.info(e)
         return `输入错误，没有这个技能哦`
       }
     })
-      
+
 }
