@@ -37,6 +37,11 @@ export const usage = `### 10.20 新增功能
 - 修复了一些bug
 - 提高了对战代价
 - 增加了管理员，防止解包指令触发
+
+### 11.3
+- 增加了插件重载提示
+- 削弱神兽杂交
+- 修复插件重启后setTimeOut失效的bug
 `
 
 export interface Config {
@@ -118,6 +123,17 @@ export async function apply(ctx, config: Config) {
   const exptolv = require('./ExpToLv.json')
   const Base = require('./PokemonBase.json')
   const skillMachine = require('./skillMachine.json')
+
+  let restartUser = await ctx.database
+    .select('pokebattle')
+    .where({ battleTimes: 0 })
+    .execute()
+  
+    for (let i = 0; i < restartUser.length; i++) {
+      await ctx.database.set('pokebattle', { id: restartUser[i].id }, {
+        battleTimes: 1,
+      })
+    }
   //签到
   ctx.command('宝可梦签到')
     .alias(config.签到指令别名)
@@ -396,7 +412,8 @@ ${pokemonCal.pokemomPic(poke, false)}
           let pokeM = bagspace[Number(comm[0]) - 1]
           let pokeW = bagspace[Number(comm[1]) - 1]
           let tip = ''
-          if (pokeM == '150.150' && pokeW == '150.150') tip = '超梦是人造宝可梦，自交会导致基因断裂，成为梦幻形态'
+          let banID=['150.150','151.151','144.144','145.145','146.146']
+          if (banID.includes(pokeM) || banID.includes(pokeW)) tip = '神兽基因太过强大会导致基因断裂随机组成其他基因'
           dan = pokemonCal.pokemonzajiao(pokeM, pokeW)
           if (dan == 0 || dan[0] == 0) {
             //处理杂交错误
@@ -422,10 +439,12 @@ ${tip}
                     base: pokemonCal.pokeBase(dan[1]),
                     power: pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)
                   })
-                  const chart = ctx.echarts.createChart(300, 300, pokemonCal.pokemonproperties(pokemonCal.pokeBase(dan[1]), pokemonCal.pokemonlist(dan[1])))
-                  const buffer = (await chart).canvas.toBuffer("image/png")
-                    ; (await chart).dispose()
-                  return '成功将' + dan[0] + '放入战斗栏' + '\n' + h.image(buffer, "image/png");
+                  try {
+                    const chart = ctx.echarts.createChart(300, 300, pokemonCal.pokemonproperties(pokemonCal.pokeBase(dan[1]), pokemonCal.pokemonlist(dan[1])))
+                    const buffer = (await chart).canvas.toBuffer("image/png")
+                      ; (await chart).dispose()
+                    return '成功将' + dan[0] + '放入战斗栏' + '\n' + h.image(buffer, "image/png")
+                  } catch { return `请重新加载skia-canvas插件` }
                 case 'n':
                 case 'N':
                   return '你对这个新宝可梦不太满意，把他放生了';
@@ -598,17 +617,18 @@ ${pokemonCal.pokemomPic(discarded[0], false)}${(RandomPoke)}
         base: pokemonCal.pokeBase(userArr[0].monster_1),
         power: pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)
       })
-      const chart = ctx.echarts.createChart(300, 300, pokemonCal.pokemonproperties(pokemonCal.pokeBase(userArr[0].monster_1), pokemonCal.pokemonlist(userArr[0].monster_1)))
-      const buffer = (await chart).canvas.toBuffer("image/png")
-        ; (await chart).dispose()
-      let toDo = ''
-      if (userArr[0].base[0]) {
-        toDo = `【能力值】：
+      try {
+        const chart = ctx.echarts.createChart(300, 300, pokemonCal.pokemonproperties(pokemonCal.pokeBase(userArr[0].monster_1), pokemonCal.pokemonlist(userArr[0].monster_1)))
+        const buffer = (await chart).canvas.toBuffer("image/png")
+          ; (await chart).dispose()
+        let toDo = ''
+        if (userArr[0].base[0]) {
+          toDo = `【能力值】：
 生命:${(pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)[0])}  攻击:${(pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)[1])}  防御:${(pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)[2])}  特殊:${(pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)[3])}  速度:${(pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)[4])}
         `}
-      return `${(h.image(buffer, "image/png"))}
+        return `${(h.image(buffer, "image/png"))}
 ${(toDo)}
-      `
+      `} catch { return `请重新加载skia-canvas插件` }
 
     })
   ctx.command('对战 <user:user>')
@@ -663,8 +683,8 @@ ${(toDo)}
 `} catch (e) { logger.info(e) }
     })
   ctx.command('解压图包文件')
-    .action(async ({session}) => {
-      if(session.userId!=config.管理员) return `权限不足`
+    .action(async ({ session }) => {
+      if (session.userId != config.管理员) return `权限不足`
       const zipFilePath = './downloads/bucket1-h3vhg7cvhz443zb1ga819kmpzabblyzv/image.zip'
       const targetFolder = './'
       if (!fs.existsSync(targetFolder)) {
