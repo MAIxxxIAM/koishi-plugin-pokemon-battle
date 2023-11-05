@@ -42,6 +42,10 @@ export const usage = `### 10.20 新增功能
 - 增加了插件重载提示
 - 削弱神兽杂交
 - 修复插件重启后setTimeOut失效的bug
+
+### 11.5
+- 分离了传说宝可梦和普通宝可梦
+- 增加了传说宝可梦背包
 `
 
 export interface Config {
@@ -83,6 +87,7 @@ export interface Pokebattle {
   monster_1: String
   battlename: String
   AllMonster: string[]
+  ultramonster: string[]
   base: string[]
   power: string[]
   skill: Number
@@ -111,6 +116,7 @@ export async function apply(ctx, config: Config) {
     monster_1: 'string',
     battlename: 'string',
     AllMonster: 'list',
+    ultramonster: 'list',
     base: 'list',
     power: 'list',
     skill: 'integer',
@@ -128,12 +134,30 @@ export async function apply(ctx, config: Config) {
     .select('pokebattle')
     .where({ battleTimes: 0 })
     .execute()
-  
-    for (let i = 0; i < restartUser.length; i++) {
-      await ctx.database.set('pokebattle', { id: restartUser[i].id }, {
-        battleTimes: 1,
-      })
-    }
+
+  for (let i = 0; i < restartUser.length; i++) {
+    await ctx.database.set('pokebattle', { id: restartUser[i].id }, {
+      battleTimes: 1,
+    })
+  }
+  let banID = ['150.150', '151.151', '144.144', '145.145', '146.146']
+  let regex = new RegExp(banID.join('|'))
+  let allUsers = await ctx.database
+    .select('pokebattle')
+    .execute();
+
+  let nexttUser = allUsers.filter(user => user.AllMonster.some(monster => regex.test(monster)));
+  for (let i = 0; i < nexttUser.length; i++) {
+    let ls = nexttUser[i].AllMonster.filter(monster => !banID.includes(monster))
+    let ultramonsterPlus = nexttUser[i].AllMonster.filter(monster => banID.includes(monster))
+    if (ls.length === 0) ls = ['6.6']
+    nexttUser[i].ultramonster.push(ultramonsterPlus)
+    await ctx.database.set('pokebattle', { id: nexttUser[i].id }, {
+      AllMonster: ls,
+      ultramonster: nexttUser[i].ultramonster
+    })
+  }
+
   //签到
   ctx.command('宝可梦签到')
     .alias(config.签到指令别名)
@@ -240,6 +264,7 @@ ${pokemonCal.pokemomPic(firstMonster, false)}
         if (userArr[0].captureTimes > 0) {
           let grassMonster1 = pokemonCal.mathRandomInt(1, 151), grassMonster2 = pokemonCal.mathRandomInt(1, 151), grassMonster3 = pokemonCal.mathRandomInt(1, 151)
           let poke1 = grassMonster1 + '.' + grassMonster1
+
           let poke2 = grassMonster2 + '.' + grassMonster2
           let poke3 = grassMonster3 + '.' + grassMonster3
           session.send(`
@@ -290,6 +315,20 @@ ${pokemonCal.pokemomPic(poke, false)}
           await ctx.database.set('pokebattle', { id: session.userId }, {
             captureTimes: { $subtract: [{ $: 'captureTimes' }, 1] },
           })
+          if (banID.includes(poke) && !userArr[0].ultramonster[0].includes(poke)) {
+            userArr[0].ultramonster.push(poke)
+            await ctx.database.set('pokebattle', { id: session.userId }, {
+              ultramonster: userArr[0].ultramonster,
+            })
+            return `${(h('at', { id: (session.userId) }))}恭喜你获得了传说宝可梦【${(pokemonCal.pokemonlist(poke))}】`
+          } else if (banID.includes(poke) && userArr[0].ultramonster[0].includes(poke)) {
+            await ctx.database.set('pokebattle', { id: session.userId }, {
+              captureTimes: { $add: [{ $: 'captureTimes' }, 1] },
+            })
+
+            return `${(h('at', { id: (session.userId) }))}你已经拥有一只了，${(pokemonCal.pokemonlist(poke))}挣脱束缚逃走了
+  但是他把精灵球还你了`
+          }
           if (userArr[0].AllMonster.length < 6) {
             let five: string = ''
             if (userArr[0].AllMonster.length === 5) five = `\n你的背包已经满了,你可以通过【${(config.放生指令别名)}】指令，放生宝可梦`
@@ -411,9 +450,6 @@ ${pokemonCal.pokemomPic(poke, false)}
           let comm = zajiao.split(' ')
           let pokeM = bagspace[Number(comm[0]) - 1]
           let pokeW = bagspace[Number(comm[1]) - 1]
-          let tip = ''
-          let banID=['150.150','151.151','144.144','145.145','146.146']
-          if (banID.includes(pokeM) || banID.includes(pokeW)) tip = '神兽基因太过强大会导致基因断裂随机组成其他基因'
           dan = pokemonCal.pokemonzajiao(pokeM, pokeW)
           if (dan == 0 || dan[0] == 0) {
             //处理杂交错误
@@ -427,7 +463,6 @@ ${pokemonCal.pokemomPic(dan[1], true)}
 当前战斗宝可梦是：【${(pokemonCal.pokemonlist(userArr[0].monster_1))}】
 ${pokemonCal.pokemomPic(userArr[0].monster_1, true)}
 是否放入战斗栏（y/n）
-${tip}
 `)
               const battleBag = await session.prompt(20000)
               switch (battleBag) {
@@ -472,7 +507,7 @@ ${tip}
         return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
       }
     })
-  ctx.command('查看信息 <user:user>')
+  ctx.command('查看信息 <user:string>')
     .alias(config.查看信息指令别名)
     .action(async ({ session }, user) => {
       if (!user) {
@@ -497,10 +532,14 @@ ${tip}
 当前精灵球数：${(userArr[0].captureTimes)}个
 当前战斗宝可梦:【${(pokemonCal.pokemonlist(userArr[0].monster_1))}】
 ${pokemonCal.pokemomPic(userArr[0].monster_1, true)}
-你的背包：
+你的宝可梦背包：
 【1】${(pokemonCal.pokemonlist(bagspace[0]))}【2】${(pokemonCal.pokemonlist(bagspace[1]))}
 【3】${(pokemonCal.pokemonlist(bagspace[2]))}【4】${(pokemonCal.pokemonlist(bagspace[3]))}
 【5】${(pokemonCal.pokemonlist(bagspace[4]))}【6】${(pokemonCal.pokemonlist(bagspace[5]))}
+你遇到的传说宝可梦：
+【1】${(pokemonCal.pokemonlist(userArr[0].ultramonster[0]))}【2】${(pokemonCal.pokemonlist(userArr[0].ultramonster[1]))}
+【3】${(pokemonCal.pokemonlist(userArr[0].ultramonster[2]))}【4】${(pokemonCal.pokemonlist(userArr[0].ultramonster[3]))}
+【5】${(pokemonCal.pokemonlist(userArr[0].ultramonster[4]))}
 输入指令【技能背包】来查看已有的技能机
  `
           } else {
@@ -510,10 +549,14 @@ ${pokemonCal.pokemomPic(userArr[0].monster_1, true)}
 当前精灵球数：${(userArr[0].captureTimes)}个
 你还没有杂交出满意的宝可梦
 请输入【${(config.杂交指令别名)}】
-你的背包：
+你的宝可梦背包：
 【1】${(pokemonCal.pokemonlist(bagspace[0]))}【2】${(pokemonCal.pokemonlist(bagspace[1]))}
 【3】${(pokemonCal.pokemonlist(bagspace[2]))}【4】${(pokemonCal.pokemonlist(bagspace[3]))}
 【5】${(pokemonCal.pokemonlist(bagspace[4]))}【6】${(pokemonCal.pokemonlist(bagspace[5]))}
+你遇到的传说宝可梦：
+【1】${(pokemonCal.pokemonlist(userArr[0].ultramonster[0]))}【2】${(pokemonCal.pokemonlist(userArr[0].ultramonster[1]))}
+【3】${(pokemonCal.pokemonlist(userArr[0].ultramonster[2]))}【4】${(pokemonCal.pokemonlist(userArr[0].ultramonster[3]))}
+【5】${(pokemonCal.pokemonlist(userArr[0].ultramonster[4]))}
 输入指令【技能背包】来查看已有的技能机`
           }
         } else {
@@ -523,7 +566,7 @@ ${pokemonCal.pokemomPic(userArr[0].monster_1, true)}
 
       } else {
         //查看at用户信息
-        const [platform, userId] = user.split(':')
+        let userId = /[0-9]+/.exec(user)[0]
         const userArr = await ctx.database.get('pokebattle', { id: userId })
         if (userArr.length != 0) {
           //存在数据
@@ -631,23 +674,62 @@ ${(toDo)}
       `} catch { return `请重新加载skia-canvas插件` }
 
     })
-  ctx.command('对战 <user:user>')
+  ctx.command('对战 <user:string>')// 
     .action(async ({ session }, user) => {
       try {
+        if (!user) return `请@一位宝可梦训练师，例如对战 @麦Mai`
         let losergold = ''
-        let [platform, userId] = user.split(':')
+        let userId = /[0-9]+/.exec(user)[0]
+        console.info(userId)
+        let banMID = ['144', '145', '146', '150', '151']
         const userArr = await ctx.database.get('pokebattle', { id: session.userId })
         const tarArr = await ctx.database.get('pokebattle', { id: userId })
+        if (!userId) {
+          return (`请@一位宝可梦训练师，例如对战 @麦Mai`);
+        }
+        else if (session.userId == userId) {
+          return (`你不能对自己发动对战`)
+        } else if (tarArr[0].length == 0 || tarArr[0].monster_1 == '0') {
+          return (`对方还没有宝可梦`)
+        }
+        console.info(userId)
         if (userArr[0].length == 0) return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
+        let tar1 = tarArr[0].monster_1.split('.')[0]
+        let tar2 = tarArr[0].monster_1.split('.')[1]
+        let user1 = userArr[0].monster_1.split('.')[0]
+        let user2 = userArr[0].monster_1.split('.')[1]
+        let dan: number | any[]
+        if (banMID.includes(user1) || banMID.includes(user2)) {
+          let pokeM = '3.3'
+          let pokeW = '6.6'
+          dan = pokemonCal.pokemonzajiao(pokeM, pokeW)
+          await ctx.database.set('pokebattle', { id: session.userId }, {
+            monster_1: dan[1],
+            base: pokemonCal.pokeBase(dan[1]),
+            battlename: dan[0],
+            power: pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)
+          })
+
+          return `传说宝可梦基因无法对战，已将其放生并为你杂交出新的宝可梦【${dan[0]}】`
+        }
+        if (banMID.includes(tar1) || banMID.includes(tar2)) {
+          let pokeM = '3.3'
+          let pokeW = '6.6'
+          dan = pokemonCal.pokemonzajiao(pokeM, pokeW)
+          await ctx.database.set('pokebattle', { id: userId }, {
+            monster_1: dan[1],
+            base: pokemonCal.pokeBase(dan[1]),
+            battlename: dan[0],
+            power: pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)
+
+          })
+          return `传说宝可梦基因无法对战，已将其放生并为他杂交出新的宝可梦【${dan[0]}】`
+        }
         if (!userArr[0].skill) return `你们的宝可梦必须全部装备上对战技能哦~`
         if (userArr[0].gold < 1000) {
           return (`你的金币不足，无法对战`)
         } else if (tarArr[0].battleTimes == 0) {
           return `对方的宝可梦还在恢复，无法对战`
-        } else if (session.userId == userId) {
-          return (`你不能对自己发动对战`)
-        } else if (tarArr[0].length == 0 || tarArr[0].monster_1 == '0') {
-          return (`对方还没有宝可梦`)
         }
         session.send(`你支付了1000金币，对${(h('at', { id: (userId) }))}发动了宝可梦对战`)
         await ctx.database.set('pokebattle', { id: userId }, {
@@ -680,7 +762,10 @@ ${(toDo)}
         session.send(`${battlelog}\n${losergold}`)
         return `获胜者是${h('at', { id: (winner) })}
 获得技能扭蛋机代币+1
-`} catch (e) { logger.info(e) }
+`} catch (e) {
+        logger.info(e)
+        return `对战失败`
+      }
     })
   ctx.command('解压图包文件')
     .action(async ({ session }) => {
