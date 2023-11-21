@@ -7,6 +7,7 @@ import { } from "koishi-plugin-echarts"
 import { pathToFileURL } from 'url'
 import { resolve } from 'path'
 import { h } from "koishi"
+import { } from 'koishi-plugin-canvas'
 
 const pokemonCal = {
   power(a: string[], b: number) {
@@ -49,63 +50,6 @@ const pokemonCal = {
     } catch {
       return []
     }
-  },
-
-  pokemonproperties(a: string[], c) {
-    let b = [0, 0, 0, 0, 0]
-    for (let i = 0; i < a.length; i++) {
-      b[i] = Math.floor(Number(a[i]))
-    }
-    const option = {
-      backgroundColor: 'rgba(255,255,255,1 )',
-      tooltip: {
-      },
-      legend: {
-        bottom: 'bottom',
-        data: [
-          c + '[种族值]'
-        ],
-        textStyle: {
-          fontSize: 15
-        }
-      },
-      radar: [
-        {
-          name: {
-            textStyle: {
-              fontSize: 15
-            }
-          },
-          indicator: [
-            { text: `HP:${(b[0])}\n(生命)`, max: 180, color: 'rgba(0,0,0,1)' },
-            { text: `ATT:${(b[1])}\n(攻击)`, max: 180, color: 'rgba(0,0,0,1)' },
-            { text: `DEF:${(b[2])}\n(防御)`, max: 180, color: 'rgba(0,0,0,1)' },
-            { text: `SPEC:${(b[3])}\n(特殊)`, max: 180, color: 'rgba(0,0,0,1)' },
-            { text: `SPE:${(b[4])}\n(速度)`, max: 180, color: 'rgba(0,0,0,1)' }
-          ],
-          radius: 50,
-          center: ['50%', '50%']
-        },
-
-      ],
-      series: [
-        {
-          symbol: 'none',
-          type: 'radar',
-          tooltip: {
-            trigger: 'item'
-          },
-          areaStyle: {},
-          data: [
-            {
-              value: [b[0], b[1], b[2], b[3], b[4]],
-              name: c + '[种族值]'
-            }
-          ]
-        }
-      ],
-    };
-    return option
   },
   //宝可梦列表
   pokemonlist(a) {
@@ -193,7 +137,7 @@ const pokemonCal = {
       let winner
       let loser
     const attack = (att,def) => {
-      let damage = Math.floor(((2 * att[0].level +10 )/ 250 * Number(att[0].power[1])/(Number(att[0].power[3])+Number(def[0].power[2]))*skillMachine.skill[Number(att[0].skill)].Dam + 2)*(Number(att[0].power[3])/Number(def[0].power[2]*2.4)+(Math.random() * (0.75 - 0.65 + 1) + 0.65)))
+      let damage = Math.floor(((2 * att[0].level +10 )/ 250 * Number(att[0].power[1])/(Number(def[0].power[3])+Number(def[0].power[2]))*skillMachine.skill[Number(att[0].skill)].Dam + 2)*(Number(att[0].power[3])/Number(def[0].power[2]*2.4)+(Math.random() * (0.75 - 0.65 + 1) + 0.65)))
       def[0].power[0] = def[0].power[0] - damage
       if(def[0].power[0]<=0){def[0].power[0]=0}else if(att[0].power[0]<=0){att[0].power[0]=0}
       log.push(`${att[0].battlename}使用了${skillMachine.skill[Number(att[0].skill)].skill}，造成了${Math.floor(damage)}点伤害,${def[0].battlename}剩余${Math.floor(def[0].power[0])}点生命`)
@@ -260,7 +204,6 @@ ${skillMachine.skill[skill[0]].skill}:${skillMachine.skill[skill[0]].Dam}
 ${skillMachine.skill[skill[1]].skill}:${skillMachine.skill[skill[1]].Dam}
 ${skillMachine.skill[skill[2]].skill}:${skillMachine.skill[skill[2]].Dam}
 `
-return skill
 }
 }
 
