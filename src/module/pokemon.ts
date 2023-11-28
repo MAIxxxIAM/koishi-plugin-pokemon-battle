@@ -1,4 +1,3 @@
-import { name } from ".."
 const exptolv = require('../ExpToLv.json')
 const Base = require('../PokemonBase.json')
 const skillMachine = require('../skillMachine.json')
@@ -7,24 +6,24 @@ import { } from "koishi-plugin-echarts"
 import { pathToFileURL } from 'url'
 import { resolve } from 'path'
 import { h } from "koishi"
-import { } from 'koishi-plugin-canvas'
 
 const pokemonCal = {
   power(a: string[], b: number) {
-    try{
+    try {
       let c = ['0', '0', '0', '0', '0']
-    for (let i = 0; i < a.length; i++) {
-      if (i == 0) { c[i] = String(Math.floor((Number(a[i]) + 30 + 1.25) * b / 50 + 10 + b)) }
-      c[i] = String(Math.floor((Number(a[i]) + 30 + 1.25) * b / 50 + 5))
-    }
-    return c}catch{
+      for (let i = 0; i < a.length; i++) {
+        if (i == 0) { c[i] = String(Math.floor((Number(a[i]) + 30 + 1.25) * b / 50 + 10 + b)) }
+        c[i] = String(Math.floor((Number(a[i]) + 30 + 1.25) * b / 50 + 5))
+      }
+      return c
+    } catch {
       return ['0', '0', '0', '0', '0']
     }
   },
   exp_bar(a: number, b: number) {
     const exp_bar = ['=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=']
     let nowExp = b / exptolv.exp_lv[a].exp * 100
-    exp_bar[Math.floor(nowExp / 5) - 1] = `>${(nowExp.toFixed(1))}%>`
+    exp_bar[Math.floor(nowExp / 5) - 1] = `${(nowExp.toFixed(1))}%`
     return exp_bar.join('')
 
   },
@@ -34,18 +33,17 @@ const pokemonCal = {
       let pokeF = poke[0]
       let pokeM = poke[1]
       let BaseList
-      if(pokeF=='150'&&pokeM=='150'){
-        return ['100','100','100','100','100']
+      if (pokeF == '150' && pokeM == '150') {
+        return ['100', '100', '100', '100', '100']
       }
-      if(pokeF=='150'||pokeM=='150'){
-      BaseList = [
-        String(Math.floor(Number(Base.Base[pokeF].hp)>=Number(Base.Base[pokeM].hp)?Number(Base.Base[pokeF].hp)*0.2 + Number(Base.Base[pokeM].hp)*0.55:Number(Base.Base[pokeF].hp)*0.55 + Number(Base.Base[pokeM].hp)*0.2)),
-        String(Math.floor(Number(Base.Base[pokeF].att)>=Number(Base.Base[pokeM].att)?Number(Base.Base[pokeF].att)*0.2 + Number(Base.Base[pokeM].att)*0.55:Number(Base.Base[pokeF].att)*0.55 + Number(Base.Base[pokeM].att)*0.2)),
-        String(Math.floor(Number(Base.Base[pokeF].def)>=Number(Base.Base[pokeM].def)?Number(Base.Base[pokeF].def)*0.2 + Number(Base.Base[pokeM].def)*0.55:Number(Base.Base[pokeF].def)*0.55 + Number(Base.Base[pokeM].def)*0.2)),
-        String(Math.floor(Number(Base.Base[pokeF].spec)>=Number(Base.Base[pokeM].spec)?Number(Base.Base[pokeF].spec)*0.2 + Number(Base.Base[pokeM].spec)*0.55:Number(Base.Base[pokeF].hp)*0.55 + Number(Base.Base[pokeM].hp)*0.2)),
-        String(Math.floor(Number(Base.Base[pokeF].spe)>=Number(Base.Base[pokeM].spe)?Number(Base.Base[pokeF].spe)*0.2 + Number(Base.Base[pokeM].spe)*0.55:Number(Base.Base[pokeF].spe)*0.55 + Number(Base.Base[pokeM].spe)*0.2)) ]
-      }else
-      {BaseList = [String(Math.floor((Number(Base.Base[pokeF].hp) + Number(Base.Base[pokeM].hp)) / 2)), String((Math.floor(Number(Base.Base[pokeF].att) + Number(Base.Base[pokeM].att)) / 2)), String(Math.floor((Number(Base.Base[pokeF].def) + Number(Base.Base[pokeM].def)) / 2)), String(Math.floor((Number(Base.Base[pokeF].spec) + Number(Base.Base[pokeM].spec)) / 2)), String(Math.floor((Number(Base.Base[pokeF].spe) + Number(Base.Base[pokeM].spe)) / 2))]}
+      if (pokeF !== pokeM) {
+        BaseList = [
+          String(Math.floor(Number(Base.Base[pokeF].hp) < Number(Base.Base[pokeM].hp) ? Number(Base.Base[pokeF].hp) * 0.2 + Number(Base.Base[pokeM].hp) * 0.8 : Number(Base.Base[pokeF].hp) * 0.8 + Number(Base.Base[pokeM].hp) * 0.2)),
+          String(Math.floor(Number(Base.Base[pokeF].att) < Number(Base.Base[pokeM].att) ? Number(Base.Base[pokeF].att) * 0.2 + Number(Base.Base[pokeM].att) * 0.8 : Number(Base.Base[pokeF].att) * 0.8 + Number(Base.Base[pokeM].att) * 0.2)),
+          String(Math.floor(Number(Base.Base[pokeF].def) < Number(Base.Base[pokeM].def) ? Number(Base.Base[pokeF].def) * 0.2 + Number(Base.Base[pokeM].def) * 0.8 : Number(Base.Base[pokeF].def) * 0.8 + Number(Base.Base[pokeM].def) * 0.2)),
+          String(Math.floor(Number(Base.Base[pokeF].spec) < Number(Base.Base[pokeM].spec) ? Number(Base.Base[pokeF].spec) * 0.2 + Number(Base.Base[pokeM].spec) * 0.8 : Number(Base.Base[pokeF].hp) * 0.8 + Number(Base.Base[pokeM].hp) * 0.2)),
+          String(Math.floor(Number(Base.Base[pokeF].spe) < Number(Base.Base[pokeM].spe) ? Number(Base.Base[pokeF].spe) * 0.2 + Number(Base.Base[pokeM].spe) * 0.8 : Number(Base.Base[pokeF].spe) * 0.8 + Number(Base.Base[pokeM].spe) * 0.2))]
+      } else { BaseList = [String(Math.floor((Number(Base.Base[pokeF].hp) + Number(Base.Base[pokeM].hp)) * 0.4)), String((Math.floor(Number(Base.Base[pokeF].att) + Number(Base.Base[pokeM].att)) *0.4)), String(Math.floor((Number(Base.Base[pokeF].def) + Number(Base.Base[pokeM].def)) * 0.4)), String(Math.floor((Number(Base.Base[pokeF].spec) + Number(Base.Base[pokeM].spec)) * 0.4)), String(Math.floor((Number(Base.Base[pokeF].spe) + Number(Base.Base[pokeM].spe)) * 0.4))] }
       return BaseList
     } catch {
       return []
@@ -80,13 +78,12 @@ const pokemonCal = {
       const x = ["0", "蛙种子", "蛙草", "蛙花", "火龙", "恐龙", "火龙", "龟", "龟", "龟", "毛虫", "甲蛹", "蝶", "角虫", "昆蛹", "针蜂", "雀", "鸟", "雕", "鼠", "巨鼠", "雀", "雁", "蛇", "毒蛇", "丘", "丘", "兽", "鼠王", "兰", "娜", "王后", "朗", "力诺", "王", "皮皮", "可西", "六尾狐", "九尾狐", "气球", "丁", "蝠", "蝠", "草", "臭花", "霸王花", "蟹", "菇蟹", "球", "飞蛾", "地鼠", "地鼠", "喵", "喵豹", "鸭", "鸭", "怪球", "猴", "狗", "猎犬", "蝌蚪", "蛙", "泳蛙", "凯西", "波拉", "胡地", "腕力", "兄贵", "怪力", "豆芽", "豆炮", "豆笼", "水母", "水母", "拳石", "岩石", "岩怪", "火马", "烈马", "河马", "河马兽", "磁怪", "磁铁怪", "葱鸭", "双头鸟", "三头鸟", "海狮", "海狮", "泥浆", "泥巴", "贝", "刺贝", "瓦斯", "怨灵", "鬼", "岩蛇", "貘", "貘人", "蟹", "巨蟹", "电球", "雷弹", "蛋蛋", "椰树", "卡拉", "嘎啦", "郎", "郎", "舌头", "瓦斯", "瓦斯", "犀牛", "犀兽", "蛋", "怪", "袋兽", "海马", "海龙", "金鱼", "鱼王", "海星", "海星", "人偶", "螳螂", "姐", "兽", "火兽", "甲虫", "黄牛", "鱼王", "鲤龙", "贝龙", "水晶泥", "伊布", "伊布", "伊布", "伊布", "兽", "蜗牛", "贝壳兽", "甲虫", "盔虫", "翼龙", "巨兽", "鸟", "鸟", "鸟", "龙", "龙", "龙", "梦", "幻"]
       let name3 = y[pokemon_b] + x[pokemon_a]
       let dan = pokemon_a + '.' + pokemon_b
-      let banID=[150,151,144,145,146]
-      if(banID.includes(pokemon_a)||banID.includes(pokemon_b)){
-       let f= Math.floor(Math.random() * 150+1)
-       let m= Math.floor(Math.random() * 150+1)
-        let name3 = y[m] + x[f]
-        let dan = f + '.' + m
-        return [name3, dan]
+      let banID = [150, 151, 144, 145, 146]
+      while (banID.includes(pokemon_a) || banID.includes(pokemon_b)) {
+        let f = Math.floor(Math.random() * 150 + 1)
+        let m = Math.floor(Math.random() * 150 + 1)
+        name3 = y[m] + x[f]
+        dan = f + '.' + m
       }
       return [name3, dan]
     } catch {
@@ -133,78 +130,80 @@ const pokemonCal = {
     }
   },
   pokebattle(a, b) {
-    try{let log=[]
+    try {
+      let log = []
       let winner
       let loser
-    const attack = (att,def) => {
-      let damage = Math.floor(((2 * att[0].level +10 )/ 250 * Number(att[0].power[1])/(Number(def[0].power[3])+Number(def[0].power[2]))*skillMachine.skill[Number(att[0].skill)].Dam + 2)*(Number(att[0].power[3])/Number(def[0].power[2]*2.4)+(Math.random() * (0.75 - 0.65 + 1) + 0.65)))
-      def[0].power[0] = def[0].power[0] - damage
-      if(def[0].power[0]<=0){def[0].power[0]=0}else if(att[0].power[0]<=0){att[0].power[0]=0}
-      log.push(`${att[0].battlename}使用了${skillMachine.skill[Number(att[0].skill)].skill}，造成了${Math.floor(damage)}点伤害,${def[0].battlename}剩余${Math.floor(def[0].power[0])}点生命`)
-    }
-      let first,second
-      if(a[0].power[4]>b[0].power[4]){
+      const attack = (att, def) => {
+        let damage = Math.floor(((2 * att[0].level + 10) / 250 * Number(att[0].power[1]) / (Number(def[0].power[3]) + Number(def[0].power[2])) * skillMachine.skill[Number(att[0].skill)].Dam + 2) * (Number(att[0].power[3]) / Number(def[0].power[2] * 2.4) + (Math.random() * (0.75 - 0.65 + 1) + 0.65)))
+        def[0].power[0] = def[0].power[0] - damage
+        if (def[0].power[0] <= 0) { def[0].power[0] = 0 } else if (att[0].power[0] <= 0) { att[0].power[0] = 0 }
+        log.push(`${att[0].battlename}使用了${skillMachine.skill[Number(att[0].skill)].skill}，造成了${Math.floor(damage)}点伤害,${def[0].battlename}剩余${Math.floor(def[0].power[0])}点生命`)
+      }
+      let first, second
+      if (a[0].power[4] > b[0].power[4]) {
         first = a
         second = b
-      }else{
+      } else {
         first = b
         second = a
       }
-    while(a[0].power[0]>0&&b[0].power[0]>0){
-      attack(first,second)
-      if(second[0].power[0]<=0){
-        log.push(`${second[0].battlename}被打败了`)
-        break
+      while (a[0].power[0] > 0 && b[0].power[0] > 0) {
+        attack(first, second)
+        if (second[0].power[0] <= 0) {
+          log.push(`${second[0].battlename}被打败了`)
+          break
+        }
+        attack(second, first)
+        if (first[0].power[0] <= 0) {
+          log.push(`${first[0].battlename}被打败了`)
+          break
+        }
       }
-      attack(second,first)
-      if(first[0].power[0]<=0){
-        log.push(`${first[0].battlename}被打败了`)
-        break
-      }
-}
-if(first[0].power[0]>0){winner={id:first[0].id};loser={id:second[0].id}}else{winner={id:second[0].id};loser={id:first[0].id}}
-    return [log.join('\n'),winner.id,loser.id]}catch
+      if (first[0].power[0] > 0) { winner = { id: first[0].id }; loser = { id: second[0].id } } else { winner = { id: second[0].id }; loser = { id: first[0].id } }
+      return [log.join('\n'), winner.id, loser.id]
+    } catch
     {
       return `战斗出现意外了`
     }
   },
-pokemonskill(a: number) {
-const b=100-a
-if(Math.random()<0.1*Math.floor(b/10)){
-  return Math.floor(Math.random() * 41)
-}else return Math.floor(Math.random() * (98 - 41 + 1)) + 41
-},
-skillbag(a:string[]) {
-  let skill=[]
-  let skillbag
-  for(let i=0;i<a.length;i++){
-    skill.push(skillMachine.skill[Number(a[i])].skill)
-    if((i+1)%5===0&&i!==0){
-    skill.splice(i,1,skill[i]+'💿\n')
-  }else{
-    skill.splice(i,1,skill[i]+'💿')
-  }
-  }
-  return skillbag=skill.join('')
-},
-findskillId(a:string){
-  let findone=skillMachine.skill.find((skill)=>{
-    return skill.skill===a
-  })
-  return findone.id?findone.id:0
-},
-skillinfo(a:string[]){
-  let skill=[]
-  for(let i=0;i<a.length;i++){
-    skill[i]=a[i]
-  }
-  skill.sort((a,b)=>{return Number(b)-Number(a)}  )
-return `你的技能背包中，最高威力的3个技能是
+  pokemonskill(a: number) {
+    const b = 100 - a
+    if (Math.random() < 0.1 * Math.floor(b / 10)) {
+      return Math.floor(Math.random() * 41)
+    } else return Math.floor(Math.random() * (98 - 41 + 1)) + 41
+  },
+  skillbag(a: string[]) {
+    let skill = []
+    let skillbag
+    for (let i = 0; i < a.length; i++) {
+      skill.push(skillMachine.skill[Number(a[i])].skill)
+      if ((i + 1) % 5 === 0 && i !== 0) {
+        skill.splice(i, 1, skill[i] + '💿\n')
+      } else {
+        skill.splice(i, 1, skill[i] + '💿')
+      }
+    }
+    return skillbag = skill.join('')
+  },
+  findskillId(a: string) {
+    let findone = skillMachine.skill.find((skill) => {
+      return skill.skill === a
+    })
+    return findone.id ? findone.id : 0
+  },
+  skillinfo(a: string[]) {
+    let skill = []
+    for (let i = 0; i < a.length; i++) {
+      skill[i] = a[i]
+    }
+    skill.sort((a, b) => { return Number(b) - Number(a) })
+    return `你的技能背包中，最高威力的3个技能是
 ${skillMachine.skill[skill[0]].skill}:${skillMachine.skill[skill[0]].Dam}
 ${skillMachine.skill[skill[1]].skill}:${skillMachine.skill[skill[1]].Dam}
 ${skillMachine.skill[skill[2]].skill}:${skillMachine.skill[skill[2]].Dam}
 `
-}
+  }
 }
 
 
