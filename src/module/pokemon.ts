@@ -23,7 +23,7 @@ const pokemonCal = {
   exp_bar(a: number, b: number) {
     const exp_bar = ['=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=']
     let nowExp = b / exptolv.exp_lv[a].exp * 100
-    exp_bar[Math.floor(nowExp / 5) - 1] = `${(nowExp.toFixed(1))}%`
+    exp_bar[Math.floor(nowExp / 5) - 1] = `✧${(nowExp.toFixed(1))}%✧`
     return exp_bar.join('')
 
   },
