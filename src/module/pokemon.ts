@@ -2,7 +2,6 @@ const exptolv = require('../ExpToLv.json')
 const Base = require('../PokemonBase.json')
 const skillMachine = require('../skillMachine.json')
 export const using = ['database']
-import { } from "koishi-plugin-echarts"
 import { pathToFileURL } from 'url'
 import { resolve } from 'path'
 import { h } from "koishi"
@@ -128,7 +127,7 @@ const pokemonCal = {
     } catch {
       return `出错啦`
     }
-  },
+  },  
   pokebattle(a, b) {
     try {
       let log = []
@@ -141,7 +140,7 @@ const pokemonCal = {
         log.push(`${att[0].battlename}使用了${skillMachine.skill[Number(att[0].skill)].skill}，造成了${Math.floor(damage)}点伤害,${def[0].battlename}剩余${Math.floor(def[0].power[0])}点生命`)
       }
       let first, second
-      if (a[0].power[4] > b[0].power[4]) {
+      if (a[0].power[4] >= b[0].power[4]) {
         first = a
         second = b
       } else {

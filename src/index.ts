@@ -5,8 +5,8 @@ import { resolve } from 'path'
 import * as fs from 'fs'
 import * as path from 'path'
 import { } from 'koishi-plugin-puppeteer'
-import { } from 'koishi-plugin-canvas'
 import { exec } from 'child_process'
+import { platform } from 'os'
 
 
 export const name = 'pokemon-battle'
@@ -38,11 +38,13 @@ export const usage = `
 ### 11.30
 - 调整了对战次数逻辑，保证了每小时恢复1次
 
-### Todo
-- 传说中的宝可梦收集度
+### 1.10
+- 更新官方bot MD消息(不能使用本地服务)
+- 修复canvas和puppeteer冲突
 `
 
 export interface Config {
+  QQ官方使用MD: boolean
   管理员: string
   签到指令别名: string
   捕捉指令别名: string
@@ -59,6 +61,17 @@ export interface Config {
   对战图片品质: number
   对战cd: number
   对战次数: number
+  MDid: string
+  key1: string
+  key2: string
+  key3: string
+  key4: string
+  key5: string
+  key6: string
+  key7: string
+  key8: string
+  key9: string
+  key10: string
 }
 
 export const Config = Schema.intersect([
@@ -83,7 +96,28 @@ export const Config = Schema.intersect([
     扭蛋币定价: Schema.number().default(1500),
     对战cd: Schema.number().default(10).description('单位：秒'),
     对战次数: Schema.number().default(15),
-  }).description('数值设置')
+  }).description('数值设置'),
+  Schema.object({
+    QQ官方使用MD: Schema.boolean().default(false),
+  }).description('Markdown设置,需要server.temp服务'),
+  Schema.union([
+    Schema.object({
+      QQ官方使用MD: Schema.const(true).required(),
+      MDid: Schema.string().description('MD模板id'),
+      key1:Schema.string().default('tittle').description('标题'),
+      key2:Schema.string().default('imgsize').description('图片大小'),
+      key3:Schema.string().default('img_url').description('图片路径'),
+      key4:Schema.string().default('text1').description('宝可梦选项1'),
+      key5:Schema.string().default('text2').description('宝可梦选项2'),
+      key6:Schema.string().default('text3').description('宝可梦选项3'),
+      key7:Schema.string().default('text4').description('宝可梦选项4'),
+      key8:Schema.string().default('text5').description('宝可梦选项5'),
+      key9:Schema.string().default('text6').description('宝可梦选项6'),
+      key10:Schema.string().default('text7').description('宝可梦选项7'),
+    }),
+    Schema.object({}),
+  ]),
+
 ])
 
 declare module 'koishi' {
@@ -117,8 +151,9 @@ export interface Pokebattle {
   battlecd: Date
   relex: Date
 }
-
+var ad={}
 export async function apply(ctx, config: Config) {
+  let helpImgData:string
   const logger = ctx.logger('pokemon')
   if (!fs.existsSync('./image')) {
     const imageTask = ctx.downloads.nereid('pokemonimage', [
@@ -207,16 +242,26 @@ export async function apply(ctx, config: Config) {
   for(let i = 0;i<allUsers.length;i++){
     if(allUsers[i].relex instanceof Date){
     if(!allUsers[i].relex){
-      allUsers[i].relex =new Date
+      allUsers[i].relex =new Date()
     }else{
       allUsers[i].relex= new Date(allUsers[i].relex)
     }}
     if(allUsers[i].battlecd instanceof Date){
     if(!allUsers[i].battlecd){
-      allUsers[i].battlecd =new Date
+      allUsers[i].battlecd =new Date()
     }else{
-      allUsers[i].battlecd= new Date
-    }}
+      allUsers[i].battlecd= new Date(allUsers[i].battlecd)
+    }}else{
+      allUsers[i].battlecd =new Date()
+      allUsers[i].relex =new Date()
+    }
+    await ctx.database.set('pokebattle', { id: allUsers[i].id }, {
+      battlecd: allUsers[i].battlecd,
+      relex: allUsers[i].relex
+    })
+    if(i==allUsers.length-1){
+      logger.info('自检完成...更新数据库完成...')
+    }
   }
 
   let nexttUser = allUsers.filter(user => user.AllMonster.some(monster => regex.test(monster)));
@@ -240,16 +285,105 @@ export async function apply(ctx, config: Config) {
     })
   }
   //宝可梦帮助图像化
+  ctx.on('interaction/button', async (session) => {
+    const { d } = session.event._data
+    const data1 = d.data.resolved.button_data
+    ad[session.event.user.id] = { ...ad[session.event.user.id], data: data1 }
+    const b: string[] = ad[session.event.user.id].data.split('=')
+    if (!ad[session.event.user.id][b[0]]) {
+      ad[session.event.user.id][b[0]] = "";
+      ad[session.event.user.id]["img"] = "";
+    }
+    ad[session.event.user.id][b[0]] = ad[session.event.user.id][b[0]] + b[1]
+    ad[session.event.user.id]["img"] = ad[session.event.user.id]["img"] +'.'+ b[3]
+    switch (b[0]) {
+      case 'zajiao':
+        if (ad[session.event.user.id][b[0]].length < 2) return
+        let c = ad[session.event.user.id][b[0]].split('')
+        let i =ad[session.event.user.id]["img"].split('.')
+        let c1 = c[0] + ' ' + c[1]
+        let i1 = i[1] + '.' + i[2]
+        await session.bot.internal.sendMessage(d.group_openid, {
+          content: "111",
+          msg_type: 2,
+          markdown: {
+            custom_template_id: config.MDid,
+            params: [
+              {
+                key: "tittle",
+                values: ["是否进行杂交"]
+              },
+              {
+                key: "imgsize",
+                values: ["[img#512px #512px]"]
+              },
+              {
+                key: "img_url",
+                values: [await toUrl(session,`file://${resolve(`./image/${i1}.png`)}`)]
+              }
+            ]
+          },
+          keyboard: {
+            content: {
+              rows: [
+                {
+                  "buttons": [
+                    {
+                      "id": "1",
+                      "render_data": {
+                        "label": "确认",
+                        "visited_label": "确认"
+                      },
+                      "action": {
+                        "type": 2,
+                        "permission": {
+                          "type": 2
+                        },
+                        "unsupport_tips":  "不支持请手动输入",
+                        "data": c1,
+                        "enter": true
+                      },
+                    }, {
+                      "id": "2",
+                      "render_data": {
+                        "label": "重选",
+                        "visited_label": "重选"
+                      },
+                      "action": {
+                        "type": 2,
+                        "permission": {
+                          "type": 2
+                        },
+                        "unsupport_tips": "不支持请手动输入",
+                        "data": "/杂交宝可梦",
+                        "enter": true
+                      },
+                    }]
+                }
+              ]
+            }
+          },
+          msg_id: b[2],
+          timestamp: session.timestamp,
+          msg_seq: 1152
+        })
+        delete ad[session.event.user.id][b[0]]
+        delete ad[session.event.user.id]["img"]
+        break;
+    }
+  })
 
   ctx.before('send', async (session) => {
-    if (session._stripped.content !== session._stripped.prefix + '宝可梦' || session._sendType !== 'command') return
-    let str = session.event.message.elements[0].attrs.content
-    let arr = str.split('\n')
+    let str: string = session.content
+    let arr = []
+    if(str.length>10000) return
+    if(str.slice(0, 6)!=='指令：宝可梦') return
+    arr = str.split('\n')
     for (let i = 0; i < arr.length; i++) {
       arr[i] = arr[i].replace(/    /g, "")
       arr[i] = arr[i].split('  ')
     }
-    const bgImg = await ctx.canvas.loadImage(resolve(__dirname, './qiandao', 'pokemonbg.png'))//上下空余11px,左右空余8px
+    const bgImg = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'pokemonbg.png')}`)//上下空余11px,左右空余8px
     const helpImg = await ctx.canvas.render(960, 540, async (ctx) => {
       ctx.drawImage(bgImg, 0, 0, 960, 540)
       let txtfont = ((960 - 50) / 2) / arr.length
@@ -302,19 +436,17 @@ export async function apply(ctx, config: Config) {
           ctx.fillText(arr[i][j], 182 + 384 * j, (5 + txtfont) * i - 10)
         }
       }
+      helpImgData = await ctx.canvas.toDataURL('image/jpeg', config.canvas图片品质)
     })
-    // console.info(helpImg)
     session.elements[0] = helpImg
+    return
   })
-  //宝可梦帮助图像化
-
-
-
   //签到
   ctx.command('宝可梦').subcommand('宝可梦签到', '每日的宝可梦签到')
     .alias(config.签到指令别名)
     .usage(`/${config.签到指令别名}`)
     .action(async ({ session }) => {
+      const {platform}=session
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
       let dateToday = Math.round(Number(new Date()) / 1000)
       if (userArr.length != 0) {
@@ -367,22 +499,22 @@ export async function apply(ctx, config: Config) {
             })
           } catch (e) { return `请再试一次` }
           //图片服务
-          let image = await ctx.canvas.loadImage(resolve(__dirname, './qiandao', '签到.png'))
-          let pokemonimg = await ctx.canvas.loadImage(resolve(__dirname, `./images/0.png`))
+          let image = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', '签到.png')}`)
+          let pokemonimg = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./images/0.png`)}`)
           let pokemonimg1 = []
           for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-            pokemonimg1[i] = await ctx.canvas.loadImage(resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`))
+            pokemonimg1[i] = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
           }
           let ultramonsterimg = []
           for (let i = 0; i < 5; i++) {
-            ultramonsterimg[i] = await ctx.canvas.loadImage(resolve(__dirname, `./images/${banID[i].split('.')[0]}.png`))
+            ultramonsterimg[i] = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./images/${banID[i].split('.')[0]}.png`)}`)
           }
-          if (userArr[0].monster_1 !== '0') pokemonimg = await ctx.canvas.loadImage(`./image/${userArr[0].monster_1}.png`)
+          if (userArr[0].monster_1 !== '0') pokemonimg = await ctx.canvas.loadImage(`file://${resolve('./image/'+userArr[0].monster_1+'.png')}`)
           let trainers = '0'
           if (userArr[0].trainer[0] !== '0') { trainers = userArr[0].trainer[0] }
-          let trainerimg = await ctx.canvas.loadImage(resolve(__dirname, `./img/trainer/${trainers}.png`))
-          let expbar = await ctx.canvas.loadImage(resolve(__dirname, './qiandao', 'expbar.png'))
-          let overlay = await ctx.canvas.loadImage(resolve(__dirname, './qiandao', 'overlay_exp.png'))
+          let trainerimg = await ctx.canvas.loadImage(`file://${resolve(__dirname, './img/trainer/'+trainers+'.png')}`)
+          let expbar = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'expbar.png')}`)
+          let overlay = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'overlay_exp.png')}`)
           let time = Date.now()
           let date = new Date(time).toLocaleDateString()
           let img
@@ -424,10 +556,56 @@ export async function apply(ctx, config: Config) {
             }
             img = await ctx.canvas.toDataURL('image/jpeg', config.canvas图片品质)
           })
-          return h.image(img)
+          if(platform=='qq'&&config.QQ官方使用MD){
+            await session.bot.internal.sendMessage(session.guildId,{
+              content:"111",
+              msg_type:2,
+              markdown: {
+                custom_template_id:config.MDid,
+                params: [
+                  {
+                    key: config.key1,
+                    values: ["签到成功"]
+                  },
+                  {
+                    key:config.key2,
+                    values: ["[img#512px #763px]"]
+                  },
+                  {
+                    key: config.key3,
+                    values: [await toUrl(session,img)]
+                  },
+                ]
+              },
+              keyboard: {
+                content: {
+                  "rows":[
+                    {
+                    "buttons":[
+                      button("📷捕捉","/捕捉宝可梦",session.userId,"1"),
+                      button("💳查看","/查看信息",session.userId,"2"),
+                      button("🔖帮助","/宝可梦",session.userId,"3"),
+                    ]
+                  },
+                    {
+                    "buttons":[
+                      button("⚔️对战","/对战",session.userId,"4"),
+                      button("♂杂交","/杂交宝可梦",session.userId,"5"),
+                      button("👐放生","/放生",session.userId,"6"),
+                    ]
+                  },
+                ]
+                },
+              },
+              msg_id:session.messageId,
+              timestamp:session.timestamp,
+            })
+          }else
+          {return h.image(img)}
           //图片服务
         }
       } else {
+        let img:string
         let firstMonster_ = pokemonCal.mathRandomInt(1, 151)
         let firstMonster = firstMonster_ + '.' + firstMonster_
         await ctx.database.create('pokebattle', {
@@ -446,8 +624,8 @@ export async function apply(ctx, config: Config) {
           trainer: ['0']
         })
         //图片服务
-        const bg_img = await ctx.canvas.loadImage(resolve(__dirname, './qiandao', 'spawn.png'))
-        const pokemonimg = await ctx.canvas.loadImage(resolve(__dirname, `./images/${firstMonster_}.png`))
+        const bg_img = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'spawn.png')}`)
+        const pokemonimg = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./images/${firstMonster_}.png`)}`)
         const replyImg = await ctx.canvas.render(512, 384, async (ctx) => {
           ctx.drawImage(bg_img, 0, 0, 512, 384)
           ctx.drawImage(pokemonimg, 99, 285, 64, 64)
@@ -462,9 +640,55 @@ export async function apply(ctx, config: Config) {
           ctx.fillStyle = 'red';
           ctx.fillText(`输入【/宝可梦】获取详细指令`, 256, 351)
           ctx.fillStyle = 'black';
+          img = await ctx.canvas.toDataURL('image/jpeg', config.canvas图片品质)
         })
         //图片服务
-        return replyImg
+        if(platform=='qq'&&config.QQ官方使用MD){
+          await session.bot.internal.sendMessage(session.guildId,{
+            content:"111",
+            msg_type:2,
+            markdown: {
+              custom_template_id:config.MDid,
+              params: [
+                {
+                  key: config.key1,
+                  values: ["注册成功"]
+                },
+                {
+                  key:config.key2,
+                  values: ["[img#512px #384px]"]
+                },
+                {
+                  key: config.key3,
+                  values: [await toUrl(session,img)]
+                },
+              ]
+            },
+            keyboard: {
+              content: {
+                "rows":[
+                  {
+                  "buttons":[
+                    button("📷捕捉","/捕捉宝可梦",session.userId,"1"),
+                    button("💳查看","/查看信息",session.userId,"2"),
+                    button("🔖帮助","/宝可梦",session.userId,"3"),
+                  ]
+                },
+                  {
+                  "buttons":[
+                    button("⚔️对战","/对战",session.userId,"4"),
+                    button("♂杂交","/杂交宝可梦",session.userId,"5"),
+                    button("👐放生","/放生",session.userId,"6"),
+                  ]
+                },
+              ]
+              },
+            },
+            msg_id:session.messageId,
+            timestamp:session.timestamp,
+          })
+        }else
+        {return h.image(img)}
 
       }
     })
@@ -472,6 +696,7 @@ export async function apply(ctx, config: Config) {
     .alias(config.捕捉指令别名)
     .usage(`/${config.捕捉指令别名}`)
     .action(async ({ session }) => {
+      const {platform}=session
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
       let usedCoords = []
       if (userArr.length == 0) {
@@ -493,11 +718,11 @@ export async function apply(ctx, config: Config) {
           //创建图片
           let poke_img = []
           let dataUrl
-          let bg_img = await ctx.canvas.loadImage(resolve(__dirname, './qiandao', 'catchBG.png'))
-          poke_img[0] = await ctx.canvas.loadImage(resolve(__dirname, './images', grassMonster[0] + '.png'))
-          poke_img[1] = await ctx.canvas.loadImage(resolve(__dirname, './images', grassMonster[1] + '.png'))
-          poke_img[2] = await ctx.canvas.loadImage(resolve(__dirname, './images', grassMonster[2] + '.png'))
-          let grassImg = await ctx.canvas.loadImage(resolve(__dirname, './qiandao', 'Grass.png'))
+          let bg_img = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'catchBG.png')}`)
+          poke_img[0] = await ctx.canvas.loadImage(`file://${resolve(__dirname, './images', grassMonster[0] + '.png')}`)
+          poke_img[1] = await ctx.canvas.loadImage(`file://${resolve(__dirname, './images', grassMonster[1] + '.png')}`)
+          poke_img[2] = await ctx.canvas.loadImage(`file://${resolve(__dirname, './images', grassMonster[2] + '.png')}`)
+          let grassImg = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'Grass.png')}`)
           let catchpockmon_img = await ctx.canvas.render(512, 512, async (ctx) => {
             //载入背景
             ctx.drawImage(bg_img, 0, 0, 512, 512)
@@ -525,6 +750,34 @@ export async function apply(ctx, config: Config) {
 
           })
           //创建图片
+          if(platform=='qq'&&config.QQ官方使用MD){
+            await session.bot.internal.sendMessage(session.guildId,{
+              content:"111",
+              msg_type:2,
+              markdown: {
+                custom_template_id:config.MDid,
+                params: [
+                  {
+                    key: config.key1,
+                    values: ["捕捉宝可梦"]
+                  },
+                  {
+                    key:config.key2,
+                    values: ["[img#300px #300px]"]
+                  },
+                  {
+                    key: config.key3,
+                    values: [await toUrl(session,dataUrl)]
+                  },
+                ]
+              },
+              keyboard: {
+                content: catchbutton(black[0],black[1],black[2],session.userId),
+              },
+              msg_id:session.messageId,
+              timestamp:session.timestamp,
+            })
+          }else{
           session.send(`${h.image(dataUrl)}
 \n
 官方机器人输入【@Bot 序号】
@@ -534,7 +787,7 @@ export async function apply(ctx, config: Config) {
 【3】${black[2]}
 请在10秒内输入序号\n
 ${(h('at', { id: (session.userId) }))}
-  `)
+  `)}
           const chooseMonster = await session.prompt()
           let poke
           let reply
@@ -624,6 +877,71 @@ ${(h('at', { id: (session.userId) }))}
             }
             return five
           } else if (chooseMonster == '1' || chooseMonster == '2' || chooseMonster == '3') {//背包满
+                  //图片服务
+      let pokemonimg1: string[] = []
+      let dataUrl: string
+      const bgImg = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'bag.png')}`)
+      for (let i = 0; i < userArr[0].AllMonster.length; i++) {
+        pokemonimg1[i] = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
+      }
+      const image = await ctx.canvas.render(512, 381, async ctx => {
+        ctx.drawImage(bgImg, 0, 0, 512, 381)
+        ctx.font = 'bold 20px zpix'
+        for (let i = 0; i < pokemonimg1.length; i++) {
+          if (i % 2 == 0) {
+            ctx.drawImage(pokemonimg1[i], 28, 60 + 90 * (i / 2), 64, 64)
+            ctx.fillText('【' + (i + 1) + '】' + pokemonCal.pokemonlist(userArr[0].AllMonster[i]), 82, 100 + 90 * (i / 2))
+          } else {
+            ctx.drawImage(pokemonimg1[i], 276, 72 + 90 * ((i - 1) / 2), 64, 64)
+            ctx.fillText('【' + (i + 1) + '】' + pokemonCal.pokemonlist(userArr[0].AllMonster[i]), 330, 112 + 90 * ((i - 1) / 2))
+          }
+        }
+        dataUrl = await ctx.canvas.toDataURL('image/jpeg', config.canvas图片品质)
+      })
+      //图片服务
+            if(platform=='qq'&&config.QQ官方使用MD){
+              await session.bot.internal.sendMessage(session.guildId,{
+                content:"111",
+                msg_type:2,
+                markdown: {
+                  custom_template_id:config.MDid,
+                  params: [
+                    {
+                      key: config.key1,
+                      values: ["你的宝可梦背包已经满了"]
+                    },
+                    {
+                      key: config.key2,
+                      values: ["[img#512px #381px]"]
+                    },
+                    {
+                      key: config.key3,
+                      values: [await toUrl(session,dataUrl)]
+                    },
+                    {
+                      key:config.key4,
+                      values: ["选择你需要替换的宝可梦"]
+                    },
+                    {
+                      key:config.key5,
+                      values: ["ps:替换宝可梦不会获得经验哦"]
+                    },
+                  ]
+                },
+                keyboard: {
+                  content: {
+                    "rows":[
+                      {"buttons":[button(pokemonCal.pokemonlist(userArr[0].AllMonster[0]),"1",session.userId,"1"),button(pokemonCal.pokemonlist(userArr[0].AllMonster[1]),"2",session.userId,"2")]},
+                      {"buttons":[button(pokemonCal.pokemonlist(userArr[0].AllMonster[2]),"3",session.userId,"3"),button(pokemonCal.pokemonlist(userArr[0].AllMonster[3]),"4",session.userId,"4")]},
+                      {"buttons":[button(pokemonCal.pokemonlist(userArr[0].AllMonster[4]),"5",session.userId,"5"),button(pokemonCal.pokemonlist(userArr[0].AllMonster[5]),"6",session.userId,"6")]},
+                    ]
+                  },
+                },
+                msg_id:session.messageId,
+                timestamp:session.timestamp,
+                msg_seq:Math.floor(Math.random()*1000000),
+              })
+            }else{
             session.send(`\n
 你的背包中已经有6只原生宝可梦啦
 请选择一只替换
@@ -634,7 +952,7 @@ ${(h('at', { id: (session.userId) }))}
 【5】${(pokemonCal.pokemonlist(userArr[0].AllMonster[4]))}
 【6】${(pokemonCal.pokemonlist(userArr[0].AllMonster[5]))}
 ${(h('at', { id: (session.userId) }))}
-          `)
+          `)}
             const BagNum = await session.prompt(25000)
 
             if (!BagNum) {
@@ -711,16 +1029,18 @@ ${(h('at', { id: (session.userId) }))}
     .alias(config.杂交指令别名)
     .usage(`/${config.杂交指令别名}`)
     .action(async ({ session }) => {
+      const {platform}=session
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
       let dan
+      let dataUrl:string
       if (userArr.length != 0) {
         //图片服务
         let pokemonimg1: string[] = []
-        const bgImg = await ctx.canvas.loadImage(resolve(__dirname, './qiandao', 'bag.png'))
+        const bgImg = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'bag.png')}`)
         for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-          pokemonimg1[i] = await ctx.canvas.loadImage(resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`))
+          pokemonimg1[i] = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
         }
-        const image = await ctx.canvas.render(512, 381, ctx => {
+        const image = await ctx.canvas.render(512, 381, async ctx => {
           ctx.drawImage(bgImg, 0, 0, 512, 381)
           ctx.font = 'bold 20px zpix'
           for (let i = 0; i < pokemonimg1.length; i++) {
@@ -732,13 +1052,49 @@ ${(h('at', { id: (session.userId) }))}
               ctx.fillText('【' + (i + 1) + '】' + pokemonCal.pokemonlist(userArr[0].AllMonster[i]), 330, 112 + 90 * ((i - 1) / 2))
             }
           }
+          dataUrl =await ctx.canvas.toDataURL('image/jpeg', config.canvas图片品质)
         })
         //图片服务
-        session.send(`\n${image}
+        if(platform=='qq'&&config.QQ官方使用MD){
+          await session.bot.internal.sendMessage(session.guildId,{
+            content:"111",
+            msg_type:2,
+            markdown: {
+              custom_template_id:config.MDid,
+              params: [
+                {
+                  key: config.key1,
+                  values: ["请选择两个宝可梦"]
+                },
+                {
+                  key:config.key2,
+                  values: ["[img#512px #381px]"]
+                },
+                {
+                  key: config.key3,
+                  values: [await toUrl(session,dataUrl)]
+                },
+              ]
+            },
+            keyboard: {
+              content:  {
+                "rows":[
+                  {"buttons":[actionbutton(pokemonCal.pokemonlist(userArr[0].AllMonster[0]),"1",session.userId,"1",'zajiao',session.messageId+`=${userArr[0].AllMonster[0]?.split('.')[0]}`),actionbutton(pokemonCal.pokemonlist(userArr[0].AllMonster[1]),"2",session.userId,"2",'zajiao',session.messageId+`=${userArr[0].AllMonster[1]?.split('.')[0]}`)]},
+                  {"buttons":[actionbutton(pokemonCal.pokemonlist(userArr[0].AllMonster[2]),"3",session.userId,"3",'zajiao',session.messageId+`=${userArr[0].AllMonster[2]?.split('.')[0]}`),actionbutton(pokemonCal.pokemonlist(userArr[0].AllMonster[3]),"4",session.userId,"4",'zajiao',session.messageId+`=${userArr[0].AllMonster[3]?.split('.')[0]}`)]},
+                  {"buttons":[actionbutton(pokemonCal.pokemonlist(userArr[0].AllMonster[4]),"5",session.userId,"5",'zajiao',session.messageId+`=${userArr[0].AllMonster[4]?.split('.')[0]}`),actionbutton(pokemonCal.pokemonlist(userArr[0].AllMonster[5]),"6",session.userId,"6",'zajiao',session.messageId+`=${userArr[0].AllMonster[5]?.split('.')[0]}`)]},
+                ]
+              },
+            },
+            msg_id:session.messageId,
+            timestamp:session.timestamp,
+            msg_seq: Math.floor(Math.random() * 10000)
+          })
+        }else
+        {session.send(`\n${image}
 回复【编号】 【编号】进行杂交
 官方机器人输入
 @Bot【编号】 【编号】
-`)
+`)}
         const zajiao = await session.prompt(30000)
         if (zajiao) {
           let comm = zajiao.split(' ')
@@ -749,14 +1105,15 @@ ${(h('at', { id: (session.userId) }))}
             //处理杂交错误
             return '输入错误'
           } else {
+            let dataUrl:string
             if (userArr[0].monster_1 != '0') {
               //图片服务
-              let img_fuse = await ctx.canvas.loadImage(resolve(__dirname, './qiandao/fuse.png'))
-              let img_F = await ctx.canvas.loadImage(`./image/${pokeM.split('.')[0]}.png`)
-              let img_M = await ctx.canvas.loadImage(`./image/${pokeW.split('.')[0]}.png`)
-              let img_S = await ctx.canvas.loadImage(`./image/${dan[1]}.png`)
-              let img_C = await ctx.canvas.loadImage(`./image/${userArr[0].monster_1}.png`)
-              let img_zj = await ctx.canvas.render(512, 768, ctx => {
+              let img_fuse = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao/fuse.png')}`)
+              let img_F = await ctx.canvas.loadImage(`file://${resolve(`./image/${pokeM.split('.')[0]}.png`)}`)
+              let img_M = await ctx.canvas.loadImage(`file://${resolve(`./image/${pokeW.split('.')[0]}.png`)}`)
+              let img_S = await ctx.canvas.loadImage(`file://${resolve(`./image/${dan[1]}.png`)}`)
+              let img_C = await ctx.canvas.loadImage(`file://${resolve(`./image/${userArr[0].monster_1}.png`)}`)
+              let img_zj = await ctx.canvas.render(512, 768, async ctx => {
                 ctx.drawImage(img_fuse, 0, 0, 512, 768)
                 ctx.drawImage(img_F, 16, 78, 112, 112)
                 ctx.font = 'normal 15px zpix'
@@ -770,10 +1127,64 @@ ${(h('at', { id: (session.userId) }))}
                 ctx.drawImage(img_S, 163, 114, 180, 180)
                 ctx.drawImage(img_C, 294, 449, 180, 180)
                 ctx.drawImage(img_S, 42, 449, 180, 180)
+                dataUrl =await ctx.canvas.toDataURL('image/jpeg', config.canvas图片品质)
               })
               //图片服务
               //有战斗宝可梦
-              session.send(`
+              if(platform=='qq'&&config.QQ官方使用MD){
+                await session.bot.internal.sendMessage(session.guildId,{
+                  content:"111",
+                  msg_type:2,
+                  markdown: {
+                    custom_template_id:config.MDid,
+                    params: [
+                      {
+                        key: config.key1,
+                        values: ["是否放入战斗栏"]
+                      },
+                      {
+                        key:config.key2,
+                        values: ["[img#512px #768px]"]
+                      },
+                      {
+                        key: config.key3,
+                        values: [await toUrl(session,dataUrl)]
+                      },
+                      {
+                        key:config.key4,
+                        values: [`生命：${Math.sign(Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[0]) - userArr[0].power[0]) >= 0 ? '+' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[0]) - userArr[0].power[0]) : '' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[0]) - userArr[0].power[0])}`]
+                      },
+                      {
+                        key:config.key5,
+                        values: [`攻击：${Math.sign(Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[1]) - userArr[0].power[1]) >= 0 ? '+' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[1]) - userArr[0].power[1]) : '' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[1]) - userArr[0].power[1])}`]
+                      },
+                      {
+                        key:config.key6,
+                        values: [`防御：${Math.sign(Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[2]) - userArr[0].power[2]) >= 0 ? '+' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[2]) - userArr[0].power[2]) : '' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[2]) - userArr[0].power[2])}`]
+                      },
+                      {
+                        key:config.key7,
+                        values: [`特殊：${Math.sign(Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[3]) - userArr[0].power[3]) >= 0 ? '+' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[3]) - userArr[0].power[3]) : '' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[3]) - userArr[0].power[3])}`]
+                      },
+                      {
+                        key:config.key8,
+                        values: [`速度：${Math.sign(Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[4]) - userArr[0].power[4]) >= 0 ? '+' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[4]) - userArr[0].power[4]) : '' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[4]) - userArr[0].power[4])}`]
+                      },
+                    ]
+                  },
+                  keyboard: {
+                    content: {
+                      "rows":[
+                        {"buttons":[button("✅Yes","Y",session.userId,"1"),button("❌No","N",session.userId,"2")]},
+                      ]
+                    },
+                  },
+                  msg_id:session.messageId,
+                  timestamp:session.timestamp,
+                  msg_seq: Math.floor(Math.random() * 10000)
+                })
+              }else{
+                session.send(`
 ${img_zj}
 能力变化：
 生命：${Math.sign(Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[0]) - userArr[0].power[0]) >= 0 ? '+' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[0]) - userArr[0].power[0]) : '' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[0]) - userArr[0].power[0])}
@@ -783,7 +1194,7 @@ ${img_zj}
 速度：${Math.sign(Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[4]) - userArr[0].power[4]) >= 0 ? '+' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[4]) - userArr[0].power[4]) : '' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[4]) - userArr[0].power[4])}
 是否放入战斗栏（Y/N）
 ${(h('at', { id: (session.userId) }))}
-`)
+`)}
               const battleBag = await session.prompt(20000)
               switch (battleBag) {
                 case 'y':
@@ -833,15 +1244,16 @@ ${(h('at', { id: (session.userId) }))}`
     .alias(config.查看信息指令别名)
     .usage(`/${config.查看信息指令别名} @user`)
     .action(async ({ session }, user) => {
+      const {platform}=session
       let pokemonimg1 = []
       let pokemonimg = []
       let ultramonsterimg = []
       let userArr: string | any[]
       let userId: string
       let infoImgSelf
-      const infoImgSelf_bg = await ctx.canvas.loadImage(resolve(__dirname, './qiandao', 'trainercard.png'))
-      let expbar = await ctx.canvas.loadImage(resolve(__dirname, './qiandao', 'expbar.png'))
-      let overlay = await ctx.canvas.loadImage(resolve(__dirname, './qiandao', 'overlay_exp.png'))
+      const infoImgSelf_bg = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'trainercard.png')}`)
+      let expbar = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'expbar.png')}`)
+      let overlay = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'overlay_exp.png')}`)
       if (!user) {
         //查看自己信息
         userArr = await ctx.database.get('pokebattle', { id: session.userId })
@@ -871,15 +1283,15 @@ ${(h('at', { id: (session.userId) }))}`
         const infoId = userArr[0].id.length > 15 ? `${userArr[0].id.slice(0, 3)}...${userArr[0].id.slice(-3)}` : userArr[0].id
         const infoName = userArr[0].name ? `${userArr[0].name}` : session.username > 10 ? `${session.username}` : infoId
         for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-          pokemonimg1[i] = await ctx.canvas.loadImage(resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`))
+          pokemonimg1[i] = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
         }
         for (let i = 0; i < 5; i++) {
-          ultramonsterimg[i] = await ctx.canvas.loadImage(resolve(__dirname, `./images/${banID[i].split('.')[0]}.png`))
+          ultramonsterimg[i] = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./images/${banID[i].split('.')[0]}.png`)}`)
         }
-        if (userArr[0].monster_1 !== '0') pokemonimg = await ctx.canvas.loadImage(`./image/${userArr[0].monster_1}.png`)
+        if (userArr[0].monster_1 !== '0') pokemonimg = await ctx.canvas.loadImage(`file://${resolve(`./image/${userArr[0].monster_1}.png`)}`)
         let trainers = '0'
         if (userArr[0].trainer[0] !== '0') { trainers = userArr[0].trainer[0] }
-        let trainerimg = await ctx.canvas.loadImage(resolve(__dirname, `./img/trainer/${trainers}.png`))
+        let trainerimg = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./img/trainer/${trainers}.png`)}`)
         const infoImgSelfClassic = await ctx.canvas.render(485, 703, async ctx => {
           ctx.drawImage(infoImgSelf_bg, 0, 0, 485, 703)
           if (userArr[0].monster_1 !== '0') {
@@ -919,11 +1331,54 @@ ${(h('at', { id: (session.userId) }))}`
           ctx.drawImage(expbar, 163, 641, 180, 20)
           infoImgSelf = await ctx.canvas.toDataURL('image/jpeg', config.canvas图片品质)
         })
-
         //图片服务
-
-        return `${h.image(infoImgSelf)}
-${(h('at', { id: (session.userId) }))}`
+        if(platform=='qq'&&config.QQ官方使用MD){
+          await session.bot.internal.sendMessage(session.guildId,{
+            content:"111",
+            msg_type:2,
+            markdown: {
+              custom_template_id:config.MDid,
+              params: [
+                {
+                  key: config.key1,
+                  values: ["你的训练师卡片"]
+                },
+                {
+                  key:config.key2,
+                  values: ["[img#485px #703px]"]
+                },
+                {
+                  key: config.key3,
+                  values: [await toUrl(session,infoImgSelf)]
+                },
+              ]
+            },
+            keyboard: {
+              content: {
+                "rows":[
+                  {
+                  "buttons":[
+                    button("📷捕捉","/捕捉宝可梦",session.userId,"1"),
+                    button("💳查看","/查看信息",session.userId,"2"),
+                    button("🔖帮助","/宝可梦",session.userId,"3"),
+                  ]
+                },
+                  {
+                  "buttons":[
+                    button("⚔️对战","/对战",session.userId,"4"),
+                    button("♂杂交","/杂交宝可梦",session.userId,"5"),
+                    button("👐放生","/放生",session.userId,"6"),
+                  ]
+                },
+              ]
+              },
+            },
+            msg_id:session.messageId,
+            timestamp:session.timestamp,
+          })
+        }else
+        { return `${h.image(infoImgSelf)}
+${(h('at', { id: (session.userId) }))}`}
       } else {
         return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
         //不存在数据
@@ -933,16 +1388,18 @@ ${(h('at', { id: (session.userId) }))}`
     .alias(config.放生指令别名)
     .usage(`/${config.放生指令别名}`)
     .action(async ({ session }) => {
+      const { platform } = session
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
 
       if (userArr.length == 0) return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
       //图片服务
       let pokemonimg1: string[] = []
-      const bgImg = await ctx.canvas.loadImage(resolve(__dirname, './qiandao', 'bag.png'))
+      let dataUrl: string
+      const bgImg = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'bag.png')}`)
       for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-        pokemonimg1[i] = await ctx.canvas.loadImage(resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`))
+        pokemonimg1[i] = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
       }
-      const image = await ctx.canvas.render(512, 381, ctx => {
+      const image = await ctx.canvas.render(512, 381, async ctx => {
         ctx.drawImage(bgImg, 0, 0, 512, 381)
         ctx.font = 'bold 20px zpix'
         for (let i = 0; i < pokemonimg1.length; i++) {
@@ -954,12 +1411,47 @@ ${(h('at', { id: (session.userId) }))}`
             ctx.fillText('【' + (i + 1) + '】' + pokemonCal.pokemonlist(userArr[0].AllMonster[i]), 330, 112 + 90 * ((i - 1) / 2))
           }
         }
+        dataUrl = await ctx.canvas.toDataURL('image/jpeg', config.canvas图片品质)
       })
       //图片服务
+                  if(platform=='qq'&&config.QQ官方使用MD){
+              await session.bot.internal.sendMessage(session.guildId,{
+                content:"111",
+                msg_type:2,
+                markdown: {
+                  custom_template_id:config.MDid,
+                  params: [
+                    {
+                      key: config.key1,
+                      values: ["选择放生宝可梦"]
+                    },
+                    {
+                      key:config.key2,
+                      values: ["[img#512px #381px]"]
+                    },
+                    {
+                      key: config.key3,
+                      values: [await toUrl(session,dataUrl)]
+                    },
+                  ]
+                },
+                keyboard: {
+                  content: {
+                    "rows":[
+                      {"buttons":[button(pokemonCal.pokemonlist(userArr[0].AllMonster[0]),"1",session.userId,"1"),button(pokemonCal.pokemonlist(userArr[0].AllMonster[1]),"2",session.userId,"2")]},
+                      {"buttons":[button(pokemonCal.pokemonlist(userArr[0].AllMonster[2]),"3",session.userId,"3"),button(pokemonCal.pokemonlist(userArr[0].AllMonster[3]),"4",session.userId,"4")]},
+                      {"buttons":[button(pokemonCal.pokemonlist(userArr[0].AllMonster[4]),"5",session.userId,"5"),button(pokemonCal.pokemonlist(userArr[0].AllMonster[5]),"6",session.userId,"6")]},
+                    ]
+                  },
+                },
+                msg_id:session.messageId,
+                timestamp:session.timestamp,
+              })
+            }else{
       session.send(`\n${image}
 回复【编号】进行放生
 官方机器人请@Bot后输入序号
-`)
+`)}
       const choose = await session.prompt(20000)
       let RandomPoke = ''
       let getBall = 0
@@ -1000,7 +1492,7 @@ ${(h('at', { id: (session.userId) }))}
       let toDo = ''
       if (userArr[0].base[0]) {
         toDo = `${userArr[0].battlename}
-                   能力值：
+能力值：
 生命：${pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)[0]}
 攻击：${pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)[1]}
 防御：${pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)[2]}
@@ -1035,14 +1527,11 @@ ${(toDo)}
           .where(row => $.ne(row.monster_1, '0'))
           .where(row => $.ne(row.skillbag, []))
           .where(row => $.ne(row.power, []))
-          .orderBy(row => row.level, 'desc')
+          .orderBy(row => row.level)
           .execute()
         let maxLevel
         if (maxLevelUser.length == 0) return `你已经找不到合适的对手了`
-
-        maxLevel = maxLevelUser[0].level
-
-
+        maxLevel = maxLevelUser[maxLevelUser.length-1].level
         if (userArr[0].battlecd.getTime() + config.对战cd * 1000 >= battlenow) {
           return `对战太过频繁，请${Math.ceil((userArr[0].battlecd.getTime() + config.对战cd * 1000 - battlenow) / 1000)}秒后再试`
         }
@@ -1062,7 +1551,7 @@ ${(toDo)}
           .execute()
           let levelCount = Number(userArr[0].level)
 
-          if (randomID.length == 1 || randomID.length == 0) {
+          if (randomID.length == 0) {
             do {
               randomID = await ctx.database
               .select('pokebattle')
@@ -1073,12 +1562,11 @@ ${(toDo)}
               .where(row => $.ne(row.skillbag, []))
               .where(row => $.ne(row.power, []))
               .execute()
-              if (maxLevel <= levelCount) {
+              if (maxLevel < levelCount) {
                 levelCount = levelCount - 1
               } else {
                 levelCount = levelCount + 1
               }
-console.info(levelCount)
             } while (randomID.length == 0)
           }
           do {
@@ -1099,31 +1587,24 @@ console.info(levelCount)
           }
         }
         let tarArr = await ctx.database.get('pokebattle', { id: userId })
-        if (!tarArr[0].relex) {
-          await ctx.database.set('pokebattle', { id: userId }, {
-            relex: new Date(battlenow - 3600000 * 2)
-          })
-        }
-        const getTimes = (battlenow - tarArr[0].relex.getTime()) / 3600000 > 3 ? 3 : Math.floor((battlenow - tarArr[0].relex.getTime()) / 3600000)
-
+        const getTimes = ((battlenow - new Date(tarArr[0].relex).getTime()) / 3600000) > 3 ? 3 : Math.floor((battlenow -new Date(tarArr[0].relex).getTime()) / 3600000)
         if (session.userId == userId) {
           return (`你不能对自己发动对战`)
         } else if (tarArr.length == 0 || tarArr[0].monster_1 == '0') {
           return (`对方还没有宝可梦`)
         }
-
-        tarArr[0].battleTimes = (getTimes + tarArr[0].battleTimes - 1) >= 2 ? 2 : getTimes + tarArr[0].battleTimes - 1
-        tarArr[0].relex = (battlenow - tarArr[0].relex.getTime()) / 3600000 > 3 ? new Date(battlenow) : new Date(3600000 * getTimes+tarArr[0].relex.getTime())
-
-        if (tarArr[0].battleTimes < 0) {
-          tarArr[0].battleTimes = 0
+        let battleTimes = (getTimes + tarArr[0].battleTimes - 1) >= 2 ? 2 : getTimes + tarArr[0].battleTimes - 1
+        let relex =((battlenow - new Date(tarArr[0].relex).getTime()) / 3600000) > 3 ?new Date(battlenow):new Date((new Date(tarArr[0].relex)).getTime()+3600000*Math.floor(battlenow - new Date(tarArr[0].relex).getTime())/ 3600000)
+        // let relex =new Date(battlenow)
+        if (battleTimes < 0) {
+          battleTimes = 0
           return `对方的宝可梦还在恢复，无法对战`
         }
-
         await ctx.database.set('pokebattle', { id: userId }, {
-          battleTimes: tarArr[0].battleTimes,
-          relex: tarArr[0].relex
+          battleTimes: battleTimes,
+          relex: relex.getTime()
         })
+        tarArr[0].battleTimes = battleTimes
         const tar1 = tarArr[0].monster_1.split('.')[0]
         const tar2 = tarArr[0].monster_1.split('.')[1]
         const user1 = userArr[0].monster_1.split('.')[0]
@@ -1157,14 +1638,12 @@ console.info(levelCount)
         }
         await session.send(`你支付了500金币，请稍等，正在发动了宝可梦对战`)
         tarArr[0].base = pokemonCal.pokeBase(tarArr[0].monster_1)
-        tarArr[0].power = pokemonCal.power(pokemonCal.pokeBase(tarArr[0].monster_1), userArr[0].level)
-        if (tarArr[0].power.length == 0) {
-          await ctx.database.set('pokebattle', { id: userId }, {
+        tarArr[0].power = pokemonCal.power(pokemonCal.pokeBase(tarArr[0].monster_1), tarArr[0].level)
+
+        await ctx.database.set('pokebattle', { id: userId }, {
             base: tarArr[0].base,
             power: tarArr[0].power,
           })
-        }
-
         let jli: string = ''
         await ctx.database.set('pokebattle', { id: session.userId }, {
           battleToTrainer: { $subtract: [{ $: 'battleToTrainer' }, 1] },
@@ -1181,7 +1660,7 @@ console.info(levelCount)
         let getgold = pokemonCal.mathRandomInt(500, 1200)
         let loserArr = await ctx.database.get('pokebattle', { id: loser })
         let winnerArr = await ctx.database.get('pokebattle', { id: winner })
-        let expGet = userArr[0].level > 99 ? 0 : userArr[0].level > 99 ? 0 : Math.floor(loserArr[0].level * expbase.exp[(Number(winnerArr[0].monster_1.split('.')[0]) > Number(winnerArr[0].monster_1.split('.')[1]) ? Number(winnerArr[0].monster_1.split('.')[1]) : Number(winnerArr[0].monster_1.split('.')[0])) - 1].expbase / 7)
+        let expGet = winnerArr[0].level > 99 ? 0 : winnerArr[0].level > 99 ? 0 : Math.floor(loserArr[0].level * expbase.exp[(Number(winnerArr[0].monster_1.split('.')[0]) > Number(winnerArr[0].monster_1.split('.')[1]) ? Number(winnerArr[0].monster_1.split('.')[1]) : Number(winnerArr[0].monster_1.split('.')[0])) - 1].expbase / 7)
         if (loserArr[0].level >= winnerArr[0].level + 6) {
           expGet = Math.floor(expGet * 0.2)
         }
@@ -1454,5 +1933,122 @@ ${jli}`
       array.unshift(element)
     }
     return array
+  }
+  async function toUrl(ses,img){
+    const {url} = await ses.app['server.temp'].create(img)
+    return url
+  }
+  function catchbutton(a:string,b:string,c:string,d:string){
+    return {
+      "rows": [
+        {
+          "buttons": [
+            {
+              "id": "1",
+              "render_data": {
+                "label": "🕹️捕捉"+a,
+                "visited_label": "捕捉成功"
+              },
+              "action": {
+                "type": 2,
+                "permission": {
+                  "type": 0,
+                  "specify_user_ids": [d]
+                },
+                "click_limit": 10,
+                "unsupport_tips": "请输入@Bot 1",
+                "data": "1",
+                "enter": true
+              },
+
+            }
+          ]
+        },
+        {
+          "buttons": [
+            {
+              "id": "2",
+              "render_data": {
+                "label": "🕹️捕捉"+b,
+                "visited_label": "捕捉成功"
+              },
+              "action": {
+                "type": 2,
+                "permission": {
+                  "type":0,
+                  "specify_user_ids": [d]
+                },
+                "click_limit": 10,
+                "unsupport_tips": "请输入@Bot 2",
+                "data": "2",
+                "enter": true
+              }
+            }
+          ]
+        },
+        {
+          "buttons": [
+            {
+              "id": "3",
+              "render_data": {
+                "label": "🕹️捕捉"+c,
+                "visited_label": "捕捉成功"
+              },
+              "action": {
+                "type": 2,
+                "permission": {
+                  "type": 0,
+                  "specify_user_ids": [d]
+                },
+                "click_limit": 10,
+                "unsupport_tips": "请输入@Bot 3",
+                "data": "3",
+                "enter": true
+              }
+            }
+          ]
+        }
+      ]
+    } 
+  }
+  function button(a:string,b:string,d:string,c:string){
+
+      return  {
+          "id": c,
+          "render_data": {
+            "label": a,
+            "visited_label": a
+          },
+          "action": {
+            "type": 2,
+            "permission": {
+              "type": 0,
+              "specify_user_ids": [d]
+            },
+            "click_limit": 10,
+            "unsupport_tips": "请输入@Bot 1",
+            "data": b,
+            "enter": true
+          },
+        }
+  }
+  function actionbutton(a:string,b:string,d:string,c:string,t:string,id:string){
+    return  {
+      "id": c,
+      "render_data": {
+        "label": a,
+        "visited_label": a
+      },
+      "action": {
+        "type": 1,
+        "permission": {
+          "type": 0,
+          "specify_user_ids": [d]
+        },
+        "click_limit": 10,
+        "unsupport_tips": "请输入@Bot",
+        "data": t+"="+b+"="+id,
+      },
+    }
   }
 }
