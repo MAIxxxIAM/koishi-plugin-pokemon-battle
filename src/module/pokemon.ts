@@ -20,9 +20,9 @@ const pokemonCal = {
     }
   },
   exp_bar(a: number, b: number) {
-    const exp_bar = ['=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=', '=']
+    let exp_bar = ['=', '=', '=', '=', '=', '=', '=', '=', '=', '=']
     let nowExp = b / exptolv.exp_lv[a].exp * 100
-    exp_bar[Math.floor(nowExp / 5) - 1] = `✧${(nowExp.toFixed(1))}%✧`
+    exp_bar[Math.floor(nowExp / 10) - 1] = `✧${(nowExp.toFixed(1))}%✧`
     return exp_bar.join('')
 
   },
@@ -40,7 +40,7 @@ const pokemonCal = {
           String(Math.floor(Number(Base.Base[pokeF].hp) < Number(Base.Base[pokeM].hp) ? Number(Base.Base[pokeF].hp) * 0.2 + Number(Base.Base[pokeM].hp) * 0.8 : Number(Base.Base[pokeF].hp) * 0.8 + Number(Base.Base[pokeM].hp) * 0.2)),
           String(Math.floor(Number(Base.Base[pokeF].att) < Number(Base.Base[pokeM].att) ? Number(Base.Base[pokeF].att) * 0.2 + Number(Base.Base[pokeM].att) * 0.8 : Number(Base.Base[pokeF].att) * 0.8 + Number(Base.Base[pokeM].att) * 0.2)),
           String(Math.floor(Number(Base.Base[pokeF].def) < Number(Base.Base[pokeM].def) ? Number(Base.Base[pokeF].def) * 0.2 + Number(Base.Base[pokeM].def) * 0.8 : Number(Base.Base[pokeF].def) * 0.8 + Number(Base.Base[pokeM].def) * 0.2)),
-          String(Math.floor(Number(Base.Base[pokeF].spec) < Number(Base.Base[pokeM].spec) ? Number(Base.Base[pokeF].spec) * 0.2 + Number(Base.Base[pokeM].spec) * 0.8 : Number(Base.Base[pokeF].hp) * 0.8 + Number(Base.Base[pokeM].hp) * 0.2)),
+          String(Math.floor(Number(Base.Base[pokeF].spec) < Number(Base.Base[pokeM].spec) ? Number(Base.Base[pokeF].spec) * 0.2 + Number(Base.Base[pokeM].spec) * 0.8 : Number(Base.Base[pokeF].spec) * 0.8 + Number(Base.Base[pokeM].spec) * 0.2)),
           String(Math.floor(Number(Base.Base[pokeF].spe) < Number(Base.Base[pokeM].spe) ? Number(Base.Base[pokeF].spe) * 0.2 + Number(Base.Base[pokeM].spe) * 0.8 : Number(Base.Base[pokeF].spe) * 0.8 + Number(Base.Base[pokeM].spe) * 0.2))]
       } else { BaseList = [String(Math.floor((Number(Base.Base[pokeF].hp) + Number(Base.Base[pokeM].hp)) * 0.4)), String((Math.floor(Number(Base.Base[pokeF].att) + Number(Base.Base[pokeM].att)) *0.4)), String(Math.floor((Number(Base.Base[pokeF].def) + Number(Base.Base[pokeM].def)) * 0.4)), String(Math.floor((Number(Base.Base[pokeF].spec) + Number(Base.Base[pokeM].spec)) * 0.4)), String(Math.floor((Number(Base.Base[pokeF].spe) + Number(Base.Base[pokeM].spe)) * 0.4))] }
       return BaseList
