@@ -21,27 +21,14 @@ export const usage = `
 
 [宝可梦融合研究基金会群号：709239435](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=bFdYGdp562abZWTmbHPAEw52aQq_fWqu&authKey=TPF8n37idd8paD0YfQJhpEax9PKe9sRPUk5GToIMr6%2Fs5I3v4ycBmT4k%2FGch0z8S&noverify=0&group_code=709239435)
 
-### 11.22
-- 适配了官方QQ群机器人图文排版
-
-### 11.25
-- 修复了下载图包是任务名冲突导致path错误
-- 更新了查看信息指令回复
-- 更新了捕捉宝可梦图片
-
-### 11.26
-- 修正了经验获取算法
-- 建了个群，都加加
-
-### 11.29
-- 更新了图片解包方法，可以使用指令解包了
-
-### 11.30
-- 调整了对战次数逻辑，保证了每小时恢复1次
 
 ### 1.10
 - 更新官方bot MD消息(不能使用本地服务)
 - 修复canvas和puppeteer冲突
+
+### 2.1
+- 恭喜麦麦获奖！！！！
+- 加急学会了mysql，并且对战兼容了mysql数据库
 `
 
 export interface Config {
@@ -1775,8 +1762,8 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         let maxLevel
         if (maxLevelUser.length == 0) return `你已经找不到合适的对手了`
         maxLevel = maxLevelUser[maxLevelUser.length - 1].level
-        if (userArr[0].battlecd.getTime() + config.对战cd * 1000 >= battlenow) {
-          return `对战太过频繁，请${Math.ceil((userArr[0].battlecd.getTime() + config.对战cd * 1000 - battlenow) / 1000)}秒后再试`
+        if (userArr[0].battlecd?.getTime() + config.对战cd * 1000 >= battlenow) {
+          return `对战太过频繁，请${Math.ceil((userArr[0].battlecd?.getTime() + config.对战cd * 1000 - battlenow) / 1000)}秒后再试`
         }
         if (userArr[0].monster_1 == '0') return `你还没有宝可梦，快去【${(config.杂交指令别名)}】吧`
         if (userArr[0].skillbag.length == 0) return `快使用【技能扭蛋机】抽取一个技能并装备上`
@@ -1845,7 +1832,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         }
         await ctx.database.set('pokebattle', { id: userId }, {
           battleTimes: battleTimes,
-          relex: relex.getTime()
+          relex: (new Date(relex.getTime()+8*3600000)).toISOString().slice(0, 19).replace('T', ' ')
         })
         tarArr[0].battleTimes = battleTimes
         const tar1 = tarArr[0].monster_1.split('.')[0]
@@ -1890,7 +1877,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         let jli: string = ''
         await ctx.database.set('pokebattle', { id: session.userId }, {
           battleToTrainer: { $subtract: [{ $: 'battleToTrainer' }, 1] },
-          battlecd: new Date(battlenow)
+          battlecd: (new Date(battlenow+8*3600000)).toISOString().slice(0, 19).replace('T', ' ')
         })
         if (tarArr[0].battleTimes == 0) {
           let noTrainer = battleSuccess ? session.elements[1].attrs.name : tarArr[0].name || tarArr[0].battlename
