@@ -137,7 +137,7 @@ const pokemonCal = {
         let damage = Math.floor(((2 * att[0].level + 10) / 250 * Number(att[0].power[1]) / (Number(def[0].power[3]) + Number(def[0].power[2])) * skillMachine.skill[Number(att[0].skill)].Dam + 2) * (Number(att[0].power[3]) / Number(def[0].power[2] * 2.4) + (Math.random() * (0.75 - 0.65 + 1) + 0.65)))
         def[0].power[0] = def[0].power[0] - damage
         if (def[0].power[0] <= 0) { def[0].power[0] = 0 } else if (att[0].power[0] <= 0) { att[0].power[0] = 0 }
-        log.push(`${att[0].battlename}使用了${skillMachine.skill[Number(att[0].skill)].skill}，造成了${Math.floor(damage)}点伤害,${def[0].battlename}剩余${Math.floor(def[0].power[0])}点生命`)
+        log.push(`${att[0].battlename}的 [${skillMachine.skill[Number(att[0].skill)].skill}]，造成 ${Math.floor(damage)} 伤害,${def[0].battlename}剩余${Math.floor(def[0].power[0])}HP`)
       }
       let first, second
       if (a[0].power[4] >= b[0].power[4]) {
@@ -150,12 +150,12 @@ const pokemonCal = {
       while (a[0].power[0] > 0 && b[0].power[0] > 0) {
         attack(first, second)
         if (second[0].power[0] <= 0) {
-          log.push(`${second[0].battlename}被打败了`)
+          log.push(`${first[0].battlename} 胜利了`)
           break
         }
         attack(second, first)
         if (first[0].power[0] <= 0) {
-          log.push(`${first[0].battlename}被打败了`)
+          log.push(`${second[0].battlename} 胜利了`)
           break
         }
       }
