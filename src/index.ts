@@ -138,6 +138,7 @@ export interface Pokebattle {
 }
 let ad = {}
 export async function apply(ctx, config: Config) {
+
   const logger = ctx.logger('pokemon')
   //test
   // ctx.command('test').action(async ({session})=>{
@@ -145,15 +146,14 @@ export async function apply(ctx, config: Config) {
   //   console.log(a)
   // })
   let testcanvas: string
-  try{
-    testcanvas ='file://'
+  try {
+    testcanvas = 'file://'
     await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'spawn.png')}`)
     logger.info('当前使用的是puppeteer插件提供canvas服务')
-  }catch(e){
-    testcanvas =''
+  } catch (e) {
+    testcanvas = ''
     logger.info('当前使用的是canvas插件提供canvas服务')
   }
-  let helpImgData: string
 
   if (!fs.existsSync('./image')) {
     const imageTask = ctx.downloads.nereid('pokemonimage', [
@@ -231,15 +231,11 @@ export async function apply(ctx, config: Config) {
       price: config.训练师定价
     }]
   const exptolv = require('./ExpToLv.json')
-  const Base = require('./PokemonBase.json')
   const expbase = require('./expbase.json')
   const skillMachine = require('./skillMachine.json')
   let banID = ['150.150', '151.151', '144.144', '145.145', '146.146']
   //宝可梦帮助图像化
   ctx.on('interaction/button', async (session) => {
-    await session.bot.internal.acknowledgeInteraction(session.event._data.d.id, {
-      code: 0
-    })
     const { d } = session.event._data
     const data1 = d.data.resolved.button_data
     ad[session.event.user.id] = { ...ad[session.event.user.id], data: data1 }
@@ -250,10 +246,32 @@ export async function apply(ctx, config: Config) {
     }
     ad[session.event.user.id][b[0]] = ad[session.event.user.id][b[0]] + b[1]
     ad[session.event.user.id]["img"] = ad[session.event.user.id]["img"] + '.' + b[3]
+    if (ad[session.event.user.id].count&&b[0]!=='cx') {
+      await session.bot.internal.acknowledgeInteraction(session.event._data.d.id, {
+        code: 1
+      })
+      delete ad[session.event.user.id]
+      ad[session.event.user.id] = {count:true }
+      await session.bot.internal.sendMessage(d.group_openid, {
+        content: "请点击重选按钮后重选",
+        msg_type: 0,
+        msg_id: b[2],
+        timestamp: session.timestamp,
+        msg_seq: Math.floor(Math.random() * 100000)
+      })
+      return
+    }
+    await session.bot.internal.acknowledgeInteraction(session.event._data.d.id, {
+      code: 0
+    })
+    
     ctx.setTimeout(() => {
       delete ad[session.event.user.id]
     }, 10000);
     switch (b[0]) {
+      case 'cx':
+        delete ad[session.event.user.id]
+        break;
       case 'zajiao':
         if (ad[session.event.user.id][b[0]].length < 2) return
         let c = ad[session.event.user.id][b[0]].split('')
@@ -308,13 +326,13 @@ export async function apply(ctx, config: Config) {
                           "visited_label": "重选"
                         },
                         "action": {
-                          "type": 2,
+                          "type": 1,
                           "permission": {
-                            "type": 2
+                            "type": 0,
+                            "specify_user_ids": [session.event.user.id]
                           },
                           "unsupport_tips": "不支持请手动输入",
-                          "data": "/杂交宝可梦",
-                          "enter": true
+                          "data": "cx=xx="+b[2],
                         },
                       }]
                   }
@@ -323,11 +341,9 @@ export async function apply(ctx, config: Config) {
             },
             msg_id: b[2],
             timestamp: session.timestamp,
-            msg_seq: 112
+            msg_seq: Math.floor(Math.random() * 100000)
           })
-          await session.bot.internal.acknowledgeInteraction(session.event._data.d.id, {
-            code: 0
-          })
+          
         } catch (e) {
           await session.bot.internal.sendMessage(d.group_openid, {
             content: "请勿重复点击按钮",
@@ -336,10 +352,11 @@ export async function apply(ctx, config: Config) {
             timestamp: session.timestamp,
             msg_seq: Math.floor(Math.random() * 100000)
           })
-          delete ad[session.event.user.id]
+
           break;
         }
         delete ad[session.event.user.id]
+        ad[session.event.user.id] = {count:true }
         break;
     }
   })
@@ -449,7 +466,7 @@ export async function apply(ctx, config: Config) {
               })
             }
           }
-          let expGet
+          let expGet: number
           if (userArr[0].monster_1 == '0') {
             expGet = Math.floor(userArr[0].level * expbase.exp[Number(userArr[0].AllMonster[0].split('.')[0]) - 1].expbase / 7)
           } else {
@@ -457,7 +474,7 @@ export async function apply(ctx, config: Config) {
           }
           let expNew = pokemonCal.expCal(userArr[0].level, userArr[0].exp + expGet)[1]
           let lvNew = pokemonCal.expCal(userArr[0].level, userArr[0].exp + expGet)[0]
-          let ToDo
+          let ToDo: string
           if (userArr[0].monster_1 !== '0') {
             ToDo = `当前战斗宝可梦：${(pokemonCal.pokemonlist(userArr[0].monster_1))}
             ${(pokemonCal.pokemomPic(userArr[0].monster_1, true))}
@@ -1042,51 +1059,15 @@ ${(h('at', { id: (session.userId) }))}
             if (!BagNum) {
               return '你犹豫太久啦！宝可梦从你手中逃走咯~'
             }
-            switch (BagNum) {
-              case '1':
-                userArr[0].AllMonster[0] = poke
-                await ctx.database.set('pokebattle', { id: session.userId }, {
-                  AllMonster: userArr[0].AllMonster,
-                })
-                reply = `你小心翼翼的把 ${(pokemonCal.pokemonlist(poke))} 放在了背包第一格`
-                break;
-              case '2':
-                userArr[0].AllMonster[1] = poke
-                await ctx.database.set('pokebattle', { id: session.userId }, {
-                  AllMonster: userArr[0].AllMonster,
-                })
-                reply = `你小心翼翼的把 ${(pokemonCal.pokemonlist(poke))} 放在了背包第二格`
-                break;
-              case '3':
-                userArr[0].AllMonster[2] = poke
-                await ctx.database.set('pokebattle', { id: session.userId }, {
-                  AllMonster: userArr[0].AllMonster,
-                })
-                reply = `你小心翼翼的把 ${(pokemonCal.pokemonlist(poke))} 放在了背包第三格`
-                break;
-              case '4':
-                userArr[0].AllMonster[3] = poke
-                await ctx.database.set('pokebattle', { id: session.userId }, {
-                  AllMonster: userArr[0].AllMonster,
-                })
-                reply = `你小心翼翼的把 ${(pokemonCal.pokemonlist(poke))} 放在了背包第四格`
-                break;
-              case '5':
-                userArr[0].AllMonster[4] = poke
-                await ctx.database.set('pokebattle', { id: session.userId }, {
-                  AllMonster: userArr[0].AllMonster,
-                })
-                reply = `你小心翼翼的把 ${(pokemonCal.pokemonlist(poke))} 放在了背包第五格`
-                break;
-              case '6':
-                userArr[0].AllMonster[5] = poke
-                await ctx.database.set('pokebattle', { id: session.userId }, {
-                  AllMonster: userArr[0].AllMonster,
-                })
-                reply = `你小心翼翼的把 ${(pokemonCal.pokemonlist(poke))} 放在了背包最后一格`
-                break;
-              default:
-                reply = `你好像对新的宝可梦不太满意，把 ${(pokemonCal.pokemonlist(poke))} 放生了`
+            if (BagNum >= '1' && BagNum <= '6') {
+              const index = parseInt(BagNum) - 1;
+              userArr[0].AllMonster[index] = poke;
+              await ctx.database.set('pokebattle', { id: session.userId }, {
+                AllMonster: userArr[0].AllMonster,
+              });
+              reply = `你小心翼翼的把 ${(pokemonCal.pokemonlist(poke))} 放在了背包第${BagNum}格`;
+            } else {
+              reply = `你好像对新的宝可梦不太满意，把 ${(pokemonCal.pokemonlist(poke))} 放生了`;
             }
             await session.send(reply)
           }
@@ -1343,6 +1324,7 @@ ${(h('at', { id: (session.userId) }))}`
           }
         } else {
           delete ad[session.userId]
+          ad[session.event.user.id] = {count:true }
           return `蛋好像已经臭了，无法孵化。`
         }
 
@@ -1775,14 +1757,14 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
           }
         }
         let tarArr = await ctx.database.get('pokebattle', { id: userId })
-        const getTimes = ((battlenow - new Date(tarArr[0].relex).getTime()) / 3600000) > 3 ? 3 : Math.floor((battlenow - new Date(tarArr[0].relex).getTime()) / 3600000)
+        const getTimes = ((battlenow - new Date(tarArr[0]?.relex).getTime()) / 3600000) > 3 ? 3 : Math.floor((battlenow - new Date(tarArr[0]?.relex).getTime()) / 3600000)
         if (session.userId == userId) {
           return (`你不能对自己发动对战`)
         } else if (tarArr.length == 0 || tarArr[0].monster_1 == '0') {
           return (`对方还没有宝可梦`)
         }
         let battleTimes = (getTimes + tarArr[0].battleTimes - 1) >= 2 ? 2 : getTimes + tarArr[0].battleTimes - 1
-        let relex = ((battlenow - new Date(tarArr[0].relex).getTime()) / 3600000) > 3 ? new Date(battlenow) : new Date((new Date(tarArr[0].relex)).getTime() + 3600000 * Math.floor(battlenow - new Date(tarArr[0].relex).getTime()) / 3600000)
+        let relex = ((battlenow - new Date(tarArr[0]?.relex).getTime()) / 3600000) > 3 ? new Date(battlenow) : new Date((new Date(tarArr[0]?.relex)).getTime() + 3600000 * Math.floor(battlenow - new Date(tarArr[0]?.relex).getTime()) / 3600000)
         if (battleTimes < 0) {
           battleTimes = 0
           return `对方的宝可梦还在恢复，无法对战`
@@ -1830,7 +1812,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
           exp: expNew,
           power: pokemonCal.power(pokemonCal.pokeBase(loserArr[0].monster_1), lvNew),
         })
-        if(session.platform == 'qq'&&config.QQ官方使用MD){
+        if (session.platform == 'qq' && config.QQ官方使用MD) {
           await session.bot.internal.sendMessage(session.guildId, {
             content: "111",
             msg_type: 2,
@@ -1847,7 +1829,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
                 },
                 {
                   key: config.key3,
-                  values: [await toUrl(ctx,await getPic(ctx, battlelog, userArr[0], tarArr[0]))]
+                  values: [await toUrl(ctx, await getPic(ctx, battlelog, userArr[0], tarArr[0]))]
                 },
                 {
                   key: config.key4,
@@ -1861,19 +1843,20 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
                   key: config.key7,
                   values: [`${losergold}`]
                 }
-              ]},
-              keyboard: {
-                content: {
-                  "rows": [
-                    { "buttons": [button(2, "♂ 杂交宝可梦", "/杂交宝可梦", session.userId, "1"), button(2, "📷 捕捉宝可梦", "/捕捉宝可梦", session.userId, "2")] },
-                    { "buttons": [button(2, "💳 查看信息", "/查看信息", session.userId, "3"), button(2, "⚔️ 对战", "/对战", session.userId, "4")] },
-                    { "buttons": [ button(2, "⚔️ 和他对战", `/对战 ${session.userId}`, session.userId, "5")] },
-                  ]
-                },
+              ]
+            },
+            keyboard: {
+              content: {
+                "rows": [
+                  { "buttons": [button(2, "♂ 杂交宝可梦", "/杂交宝可梦", session.userId, "1"), button(2, "📷 捕捉宝可梦", "/捕捉宝可梦", session.userId, "2")] },
+                  { "buttons": [button(2, "💳 查看信息", "/查看信息", session.userId, "3"), button(2, "⚔️ 对战", "/对战", session.userId, "4")] },
+                  { "buttons": [button(2, "⚔️ 和他对战", `/对战 ${session.userId}`, session.userId, "5")] },
+                ]
               },
-              msg_id: session.messageId,
-              timestamp: session.timestamp,
-              msg_seq: Math.floor(Math.random() * 10000)
+            },
+            msg_id: session.messageId,
+            timestamp: session.timestamp,
+            msg_seq: Math.floor(Math.random() * 10000)
           })
           return
         }
@@ -1967,9 +1950,8 @@ ${jli}`
     .action(async ({ session }, name) => {
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
       if (userArr.length == 0) return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
-      if (userArr[0].trainer.length == 0) return `${h('at', { id: (session.userId) })}你还没有训练师哦`
       if (userArr[0].trainer.length == 1) return `${h('at', { id: (session.userId) })}你只有一个训练师，无法更换`
-      let nameList = `${userArr[0].trainerName.map((item, index) => `${index + 1}.${item}`).join('\n')}`
+      let nameList = `${userArr[0].trainerName.map((item: any, index: number) => `${index + 1}.${item}`).join('\n')}`
       if (!name) {
         await session.send(`${h('at', { id: (session.userId) })}请输入你想更换的训练师名字\n${nameList}`)
         const choose = await session.prompt(20000)
@@ -2255,7 +2237,7 @@ ${question}
       let attCount: number
       let defCount: number
       if (array.length % 2 == 0) { attCount = array.length / 2; defCount = array.length / 2 - 1 } else { attCount = Math.floor(array.length / 2); defCount = Math.floor(array.length / 2) }
-      let dataUrl
+      let dataUrl: any
       await ctx.canvas.render(712, 750, async (ctx) => {
         ctx.drawImage(backimage, 0, 0, 712, 750)
         ctx.save()
@@ -2276,7 +2258,7 @@ ${question}
           ctx.fillText(`⚔️${array[i]}⚔️`, 356, 300 + 60 * (i))
           if (i > 4) { break }
         }
-        dataUrl= await ctx.canvas.toDataURL('image/jpeg', config.canvas图片品质)
+        dataUrl = await ctx.canvas.toDataURL('image/jpeg', config.canvas图片品质)
       })
       return dataUrl
     } catch (e) {
@@ -2284,12 +2266,12 @@ ${question}
       return `渲染失败`
     }
   }
-  function findItem(item) {
+  function findItem(item: string) {
     const matchedKey = shop.filter(key => key.name.includes(item))
     return matchedKey
   }
-  function getRandomName(length) {
-    let result = '';
+  function getRandomName(length: number) {
+    let result = ''
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
     const charactersLength = characters.length
     for (let i = 0; i < length; i++) {
@@ -2297,7 +2279,7 @@ ${question}
     }
     return result
   }
-  function moveToFirst(array, element) {
+  function moveToFirst(array: any[], element: any) {
     const index = array.indexOf(element)
     if (index !== -1) {
       array.splice(index, 1)
