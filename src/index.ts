@@ -138,14 +138,23 @@ export interface Pokebattle {
 }
 let ad = {}
 export async function apply(ctx, config: Config) {
+  const logger = ctx.logger('pokemon')
   //test
   // ctx.command('test').action(async ({session})=>{
   //   const a=await toUrl(ctx,'https://1000logos.net/wp-content/uploads/2017/08/Chrome-Logo.png')
   //   console.log(a)
   // })
-
+  let testcanvas: string
+  try{
+    testcanvas ='file://'
+    await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'spawn.png')}`)
+    logger.info('当前使用的是puppeteer插件提供canvas服务')
+  }catch(e){
+    testcanvas =''
+    logger.info('当前使用的是canvas插件提供canvas服务')
+  }
   let helpImgData: string
-  const logger = ctx.logger('pokemon')
+
   if (!fs.existsSync('./image')) {
     const imageTask = ctx.downloads.nereid('pokemonimage', [
       'npm://pokemon-picture',
@@ -475,22 +484,22 @@ export async function apply(ctx, config: Config) {
             })
           } catch (e) { return `请再试一次` }
           //图片服务
-          let image = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', '签到.png')}`)
-          let pokemonimg = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./images/0.png`)}`)
+          let image = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', '签到.png')}`)
+          let pokemonimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/0.png`)}`)
           let pokemonimg1 = []
           for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-            pokemonimg1[i] = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
+            pokemonimg1[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
           }
           let ultramonsterimg = []
           for (let i = 0; i < 5; i++) {
-            ultramonsterimg[i] = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./images/${banID[i].split('.')[0]}.png`)}`)
+            ultramonsterimg[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/${banID[i].split('.')[0]}.png`)}`)
           }
-          if (userArr[0].monster_1 !== '0') pokemonimg = await ctx.canvas.loadImage(`file://${resolve('./image/' + userArr[0].monster_1 + '.png')}`)
+          if (userArr[0].monster_1 !== '0') pokemonimg = await ctx.canvas.loadImage(`${testcanvas}${resolve('./image/' + userArr[0].monster_1 + '.png')}`)
           let trainers = '0'
           if (userArr[0].trainer[0] !== '0') { trainers = userArr[0].trainer[0] }
-          let trainerimg = await ctx.canvas.loadImage(`file://${resolve(__dirname, './img/trainer/' + trainers + '.png')}`)
-          let expbar = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'expbar.png')}`)
-          let overlay = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'overlay_exp.png')}`)
+          let trainerimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './img/trainer/' + trainers + '.png')}`)
+          let expbar = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'expbar.png')}`)
+          let overlay = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'overlay_exp.png')}`)
           let time = Date.now()
           let date = new Date(time).toLocaleDateString()
           let img
@@ -621,8 +630,8 @@ export async function apply(ctx, config: Config) {
           trainerName: ['默认训练师']
         })
         //图片服务
-        const bg_img = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'spawn.png')}`)
-        const pokemonimg = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./images/${firstMonster_}.png`)}`)
+        const bg_img = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'spawn.png')}`)
+        const pokemonimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/${firstMonster_}.png`)}`)
         const replyImg = await ctx.canvas.render(512, 384, async (ctx) => {
           ctx.drawImage(bg_img, 0, 0, 512, 384)
           ctx.drawImage(pokemonimg, 99, 285, 64, 64)
@@ -732,11 +741,11 @@ export async function apply(ctx, config: Config) {
           //创建图片
           let poke_img = []
           let dataUrl
-          let bg_img = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'catchBG.png')}`)
-          poke_img[0] = await ctx.canvas.loadImage(`file://${resolve(__dirname, './images', grassMonster[0] + '.png')}`)
-          poke_img[1] = await ctx.canvas.loadImage(`file://${resolve(__dirname, './images', grassMonster[1] + '.png')}`)
-          poke_img[2] = await ctx.canvas.loadImage(`file://${resolve(__dirname, './images', grassMonster[2] + '.png')}`)
-          let grassImg = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'Grass.png')}`)
+          let bg_img = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'catchBG.png')}`)
+          poke_img[0] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './images', grassMonster[0] + '.png')}`)
+          poke_img[1] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './images', grassMonster[1] + '.png')}`)
+          poke_img[2] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './images', grassMonster[2] + '.png')}`)
+          let grassImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'Grass.png')}`)
           let catchpockmon_img = await ctx.canvas.render(512, 512, async (ctx) => {
             //载入背景
             ctx.drawImage(bg_img, 0, 0, 512, 512)
@@ -949,9 +958,9 @@ ${(h('at', { id: (session.userId) }))}
             //图片服务
             let pokemonimg1: string[] = []
             let dataUrl: string
-            const bgImg = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'bag.png')}`)
+            const bgImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'bag.png')}`)
             for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-              pokemonimg1[i] = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
+              pokemonimg1[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
             }
             const image = await ctx.canvas.render(512, 381, async ctx => {
               ctx.drawImage(bgImg, 0, 0, 512, 381)
@@ -1112,9 +1121,9 @@ ${(h('at', { id: (session.userId) }))}
       if (userArr.length != 0) {
         //图片服务
         let pokemonimg1: string[] = []
-        const bgImg = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'bag.png')}`)
+        const bgImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'bag.png')}`)
         for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-          pokemonimg1[i] = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
+          pokemonimg1[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
         }
         const image = await ctx.canvas.render(512, 381, async ctx => {
           ctx.drawImage(bgImg, 0, 0, 512, 381)
@@ -1201,11 +1210,11 @@ ${(h('at', { id: (session.userId) }))}
             let dataUrl: string
             if (userArr[0].monster_1 != '0') {
               //图片服务
-              let img_fuse = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao/fuse.png')}`)
-              let img_F = await ctx.canvas.loadImage(`file://${resolve(`./image/${pokeM.split('.')[0]}.png`)}`)
-              let img_M = await ctx.canvas.loadImage(`file://${resolve(`./image/${pokeW.split('.')[0]}.png`)}`)
-              let img_S = await ctx.canvas.loadImage(`file://${resolve(`./image/${dan[1]}.png`)}`)
-              let img_C = await ctx.canvas.loadImage(`file://${resolve(`./image/${userArr[0].monster_1}.png`)}`)
+              let img_fuse = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao/fuse.png')}`)
+              let img_F = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${pokeM.split('.')[0]}.png`)}`)
+              let img_M = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${pokeW.split('.')[0]}.png`)}`)
+              let img_S = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${dan[1]}.png`)}`)
+              let img_C = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${userArr[0].monster_1}.png`)}`)
               let img_zj = await ctx.canvas.render(512, 768, async ctx => {
                 ctx.drawImage(img_fuse, 0, 0, 512, 768)
                 ctx.drawImage(img_F, 16, 78, 112, 112)
@@ -1352,9 +1361,9 @@ ${(h('at', { id: (session.userId) }))}`
       let userArr: string | any[]
       let userId: string
       let infoImgSelf
-      const infoImgSelf_bg = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'trainercard.png')}`)
-      let expbar = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'expbar.png')}`)
-      let overlay = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'overlay_exp.png')}`)
+      const infoImgSelf_bg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'trainercard.png')}`)
+      let expbar = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'expbar.png')}`)
+      let overlay = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'overlay_exp.png')}`)
       if (!user) {
         //查看自己信息
         userArr = await ctx.database.get('pokebattle', { id: session.userId })
@@ -1384,15 +1393,15 @@ ${(h('at', { id: (session.userId) }))}`
         const infoId = userArr[0].id.length > 15 ? `${userArr[0].id.slice(0, 3)}...${userArr[0].id.slice(-3)}` : userArr[0].id
         const infoName = userArr[0].name ? `${userArr[0].name}` : session.username > 10 ? `${session.username}` : infoId
         for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-          pokemonimg1[i] = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
+          pokemonimg1[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
         }
         for (let i = 0; i < 5; i++) {
-          ultramonsterimg[i] = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./images/${banID[i].split('.')[0]}.png`)}`)
+          ultramonsterimg[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/${banID[i].split('.')[0]}.png`)}`)
         }
-        if (userArr[0].monster_1 !== '0') pokemonimg = await ctx.canvas.loadImage(`file://${resolve(`./image/${userArr[0].monster_1}.png`)}`)
+        if (userArr[0].monster_1 !== '0') pokemonimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${userArr[0].monster_1}.png`)}`)
         let trainers = '0'
         if (userArr[0].trainer[0] !== '0') { trainers = userArr[0].trainer[0] }
-        let trainerimg = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./img/trainer/${trainers}.png`)}`)
+        let trainerimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./img/trainer/${trainers}.png`)}`)
         const infoImgSelfClassic = await ctx.canvas.render(485, 703, async ctx => {
           ctx.drawImage(infoImgSelf_bg, 0, 0, 485, 703)
           if (userArr[0].monster_1 !== '0') {
@@ -1515,9 +1524,9 @@ ${(h('at', { id: (session.userId) }))}`
       //图片服务
       let pokemonimg1: string[] = []
       let dataUrl: string
-      const bgImg = await ctx.canvas.loadImage(`file://${resolve(__dirname, './qiandao', 'bag.png')}`)
+      const bgImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'bag.png')}`)
       for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-        pokemonimg1[i] = await ctx.canvas.loadImage(`file://${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
+        pokemonimg1[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
       }
       const image = await ctx.canvas.render(512, 381, async ctx => {
         ctx.drawImage(bgImg, 0, 0, 512, 381)
@@ -1725,7 +1734,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
             .where(row => $.ne(row.power, []))
             .execute()
           let levelCount = Number(userArr[0].level)
-
+          let count: number = 0
           if (randomID.length == 0) {
             do {
               randomID = await ctx.database
@@ -1741,6 +1750,10 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
                 levelCount = levelCount - 1
               } else {
                 levelCount = levelCount + 1
+              }
+              count++
+              if (count > 50) {
+                return (`你已经找不到合适的对手了`)
               }
             } while (randomID.length == 0)
           }
@@ -1862,8 +1875,9 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
               timestamp: session.timestamp,
               msg_seq: Math.floor(Math.random() * 10000)
           })
+          return
         }
-        return `${await getPic(ctx, battlelog, userArr[0], tarArr[0])}
+        return `${h.image(await getPic(ctx, battlelog, userArr[0], tarArr[0]))}
 ${h('at', { id: (session.userId) })}\u200b
 战斗结束
 ====================
@@ -2232,11 +2246,11 @@ ${question}
     try {
       let att: Pokebattle, def: Pokebattle
       if (user.power[4] > tar.power[4]) { att = user; def = tar } else { att = tar; def = user }
-      const attPerson = await ctx.canvas.loadImage(`file://${resolve(__dirname, `img/trainer/${att.trainer[0]}.png`)}`)
-      const defPerson = await ctx.canvas.loadImage(`file://${resolve(__dirname, `img/trainer/${def.trainer[0]}.png`)}`)
-      const attPokemon = await ctx.canvas.loadImage(`file://${resolve(`./image/${att.monster_1}.png`)}`)
-      const defPokemon = await ctx.canvas.loadImage(`file://${resolve(`./image/${def.monster_1}.png`)}`)
-      const backimage = await ctx.canvas.loadImage(`file://${resolve(__dirname, `img/battle.png`)}`)
+      const attPerson = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `img/trainer/${att.trainer[0]}.png`)}`)
+      const defPerson = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `img/trainer/${def.trainer[0]}.png`)}`)
+      const attPokemon = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${att.monster_1}.png`)}`)
+      const defPokemon = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${def.monster_1}.png`)}`)
+      const backimage = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `img/battle.png`)}`)
       let array = log.split('\n')
       let attCount: number
       let defCount: number
