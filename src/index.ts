@@ -6,6 +6,8 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { exec } from 'child_process'
 import { qu, an, imglk } from './q.json'
+import os from 'os'
+import pidusage from 'pidusage'
 
 
 export const name = 'pokemon-battle'
@@ -29,6 +31,7 @@ export const usage = `
 `
 
 export interface Config {
+  指令使用日志: boolean
   QQ官方使用MD: boolean
   签到指令别名: string
   捕捉指令别名: string
@@ -66,6 +69,7 @@ export const Config = Schema.intersect([
     杂交指令别名: Schema.string().default('杂交宝可梦'),
     查看信息指令别名: Schema.string().default('查看信息'),
     放生指令别名: Schema.string().default('放生'),
+    指令使用日志: Schema.boolean().default(false).description('是否输出指令使用日志'),
     战斗详情是否渲染图片: Schema.boolean().default(false).description('渲染图片需要加载puppeteer服务'),
     canvas图片品质: Schema.number().role('slider')
       .min(0).max(1).step(0.1).default(1),
@@ -136,15 +140,17 @@ export interface Pokebattle {
   battlecd: Date
   relex: Date
 }
-let ad = {}
 export async function apply(ctx, config: Config) {
+  if(config.指令使用日志){
+  ctx.on('command/before-execute', ({ session, command }) => {
+    const freeCpu = os.freemem() / os.totalmem();
+    const usedCpu = 1 - freeCpu;
+    pidusage(process.pid, (err, stats)=> {
+    console.log(`${session.userId}使用了${command.name}  当前内存占用${(usedCpu * 100).toFixed(2)}% cpu占用${(stats.cpu).toFixed(2)}%`)
+  })
+  })}
 
   const logger = ctx.logger('pokemon')
-  //test
-  // ctx.command('test').action(async ({session})=>{
-  //   const a=await toUrl(ctx,'https://1000logos.net/wp-content/uploads/2017/08/Chrome-Logo.png')
-  //   console.log(a)
-  // })
   let testcanvas: string
   try {
     testcanvas = 'file://'
@@ -235,131 +241,6 @@ export async function apply(ctx, config: Config) {
   const skillMachine = require('./skillMachine.json')
   let banID = ['150.150', '151.151', '144.144', '145.145', '146.146']
   //宝可梦帮助图像化
-  ctx.on('interaction/button', async (session) => {
-    const { d } = session.event._data
-    const data1 = d.data.resolved.button_data
-    ad[session.event.user.id] = { ...ad[session.event.user.id], data: data1 }
-    const b: string[] = ad[session.event.user.id].data.split('=')
-    if (!ad[session.event.user.id][b[0]]) {
-      ad[session.event.user.id][b[0]] = "";
-      ad[session.event.user.id]["img"] = "";
-    }
-    ad[session.event.user.id][b[0]] = ad[session.event.user.id][b[0]] + b[1]
-    ad[session.event.user.id]["img"] = ad[session.event.user.id]["img"] + '.' + b[3]
-    if (ad[session.event.user.id].count&&b[0]!=='cx') {
-      await session.bot.internal.acknowledgeInteraction(session.event._data.d.id, {
-        code: 1
-      })
-      delete ad[session.event.user.id]
-      ad[session.event.user.id] = {count:true }
-      await session.bot.internal.sendMessage(d.group_openid, {
-        content: "请点击重选按钮后重选",
-        msg_type: 0,
-        msg_id: b[2],
-        timestamp: session.timestamp,
-        msg_seq: Math.floor(Math.random() * 100000)
-      })
-      return
-    }
-    await session.bot.internal.acknowledgeInteraction(session.event._data.d.id, {
-      code: 0
-    })
-    
-    ctx.setTimeout(() => {
-      delete ad[session.event.user.id]
-    }, 10000);
-    switch (b[0]) {
-      case 'cx':
-        delete ad[session.event.user.id]
-        break;
-      case 'zajiao':
-        if (ad[session.event.user.id][b[0]].length < 2) return
-        let c = ad[session.event.user.id][b[0]].split('')
-        let i = ad[session.event.user.id]["img"].split('.')
-        let c1 = c[0] + ' ' + c[1]
-        let i1 = i[1] + '.' + i[2]
-        try {
-          await session.bot.internal.sendMessage(d.group_openid, {
-            content: "111",
-            msg_type: 2,
-            markdown: {
-              custom_template_id: config.MDid,
-              params: [
-                {
-                  key: config.key1,
-                  values: [`<@${session.event.user.id}>是否进行杂交`]
-                },
-                {
-                  key: config.key2,
-                  values: ["[img#512px #512px]"]
-                },
-                {
-                  key: config.key3,
-                  values: [await toUrl(ctx, `file://${resolve(`./image/${i1}.png`)}`)]
-                }
-              ]
-            },
-            keyboard: {
-              content: {
-                rows: [
-                  {
-                    "buttons": [
-                      {
-                        "id": "1",
-                        "render_data": {
-                          "label": "确认",
-                          "visited_label": "确认"
-                        },
-                        "action": {
-                          "type": 2,
-                          "permission": {
-                            "type": 2
-                          },
-                          "unsupport_tips": "不支持请手动输入",
-                          "data": c1,
-                          "enter": true
-                        },
-                      }, {
-                        "id": "2",
-                        "render_data": {
-                          "label": "重选",
-                          "visited_label": "重选"
-                        },
-                        "action": {
-                          "type": 1,
-                          "permission": {
-                            "type": 0,
-                            "specify_user_ids": [session.event.user.id]
-                          },
-                          "unsupport_tips": "不支持请手动输入",
-                          "data": "cx=xx="+b[2],
-                        },
-                      }]
-                  }
-                ]
-              }
-            },
-            msg_id: b[2],
-            timestamp: session.timestamp,
-            msg_seq: Math.floor(Math.random() * 100000)
-          })
-          
-        } catch (e) {
-          await session.bot.internal.sendMessage(d.group_openid, {
-            content: "请勿重复点击按钮",
-            msg_type: 0,
-            msg_id: b[2],
-            timestamp: session.timestamp,
-            msg_seq: Math.floor(Math.random() * 100000)
-          })
-
-          break;
-        }
-        delete ad[session.event.user.id]
-        ad[session.event.user.id] = {count:true }
-        break;
-    }
-  })
   ctx.command('宝可梦').subcommand('解压图包文件', { authority: 4 })
     .action(async ({ session }) => {
       exec('tar -xvf ./downloads/bucket1-mnlaakixr8b0v4yngpq865qr144y63jx/image.tar', async (error, stdout, stderr) => {
@@ -1094,7 +975,6 @@ ${(h('at', { id: (session.userId) }))}
     .alias(config.杂交指令别名)
     .usage(`/${config.杂交指令别名}`)
     .action(async ({ session }) => {
-      delete ad[session.userId]
       const { platform } = session
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
       let dan
@@ -1158,9 +1038,10 @@ ${(h('at', { id: (session.userId) }))}
               keyboard: {
                 content: {
                   "rows": [
-                    { "buttons": [actionbutton(pokemonCal.pokemonlist(userArr[0].AllMonster[0]), "1", session.userId, "1", 'zajiao', session.messageId + `=${userArr[0].AllMonster[0]?.split('.')[0]}`), actionbutton(pokemonCal.pokemonlist(userArr[0].AllMonster[1]), "2", session.userId, "2", 'zajiao', session.messageId + `=${userArr[0].AllMonster[1]?.split('.')[0]}`)] },
-                    { "buttons": [actionbutton(pokemonCal.pokemonlist(userArr[0].AllMonster[2]), "3", session.userId, "3", 'zajiao', session.messageId + `=${userArr[0].AllMonster[2]?.split('.')[0]}`), actionbutton(pokemonCal.pokemonlist(userArr[0].AllMonster[3]), "4", session.userId, "4", 'zajiao', session.messageId + `=${userArr[0].AllMonster[3]?.split('.')[0]}`)] },
-                    { "buttons": [actionbutton(pokemonCal.pokemonlist(userArr[0].AllMonster[4]), "5", session.userId, "5", 'zajiao', session.messageId + `=${userArr[0].AllMonster[4]?.split('.')[0]}`), actionbutton(pokemonCal.pokemonlist(userArr[0].AllMonster[5]), "6", session.userId, "6", 'zajiao', session.messageId + `=${userArr[0].AllMonster[5]?.split('.')[0]}`)] },
+                    { "buttons": [button(0, pokemonCal.pokemonlist(userArr[0].AllMonster[0]), `1`, session.userId, '1'), button(0, pokemonCal.pokemonlist(userArr[0].AllMonster[1]), `2`, session.userId, '2')] },
+                    { "buttons": [button(0, pokemonCal.pokemonlist(userArr[0].AllMonster[2]), `3`, session.userId, '3'), button(0, pokemonCal.pokemonlist(userArr[0].AllMonster[3]), `4`, session.userId, '4')] },
+                    { "buttons": [button(0, pokemonCal.pokemonlist(userArr[0].AllMonster[4]), `5`, session.userId, '5'), button(0, pokemonCal.pokemonlist(userArr[0].AllMonster[5]), `6`, session.userId, '6')] },
+
                   ]
                 },
               },
@@ -1178,13 +1059,40 @@ ${(h('at', { id: (session.userId) }))}
 @Bot【编号】 【编号】
 `)
         }
-        const zajiao = await session.prompt(30000)
+        let zajiao = await session.prompt(30000)
+        const bagNumber = ['1', '2', '3', '4', '5', '6']
         if (zajiao) {
+          if (bagNumber.includes(zajiao) && zajiao.length == 1) {
+            const zajiao1 = zajiao
+            session.send(`请点击第二个宝可梦`)
+            const zajiao2 = await session.prompt(30000)
+            if (!zajiao2) {
+              return '你犹豫太久啦！'
+            }
+            zajiao = zajiao1 + ' ' + zajiao2
+          }
           let comm = zajiao.split(' ')
           let pokeM = userArr[0].AllMonster[Number(comm[0]) - 1]
           let pokeW = userArr[0].AllMonster[Number(comm[1]) - 1]
           dan = pokemonCal.pokemonzajiao(pokeM, pokeW)
           if (dan == 0 || dan[0] == 0) {
+            if (platform == 'qq' && config.QQ官方使用MD) {
+              await session.bot.internal.sendMessage(session.guildId, {
+                content: "111",
+                msg_type: 2,
+                keyboard: {
+                  content: {
+                    "rows": [
+                      { "buttons": [button(2, "输入错误点击按钮重新杂交", "/杂交宝可梦", session.userId, "1")] },
+                    ]
+                  },
+                },
+                msg_id: session.messageId,
+                timestamp: session.timestamp,
+                msg_seq: Math.floor(Math.random() * 1000000),
+              })
+              return
+            }
             //处理杂交错误
             return '输入错误'
           } else {
@@ -1323,8 +1231,6 @@ ${(h('at', { id: (session.userId) }))}`
             }
           }
         } else {
-          delete ad[session.userId]
-          ad[session.event.user.id] = {count:true }
           return `蛋好像已经臭了，无法孵化。`
         }
 
@@ -1734,7 +1640,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
                 levelCount = levelCount + 1
               }
               count++
-              if (count > 50) {
+              if (count > 100) {
                 return (`你已经找不到合适的对手了`)
               }
             } while (randomID.length == 0)
@@ -1981,6 +1887,7 @@ ${jli}`
   ctx.command('宝可梦').subcommand('盲盒', '开启盲盒，抽取训练师')
     .usage(`/盲盒`)
     .action(async ({ session }) => {
+      const { platform } = session
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
       if (userArr.length == 0) return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
       if (userArr[0].trainerNum < 1) return `${h('at', { id: (session.userId) })}你的盲盒不足，无法开启`
@@ -1989,10 +1896,49 @@ ${jli}`
         getTrainer = String(pokemonCal.mathRandomInt(0, 60))
       }
       userArr[0].trainer.push(getTrainer)
-      await session.send(`${h.image(pathToFileURL(resolve(__dirname, './img/trainer', getTrainer + '.png')).href)}
+      const trainerImg = h.image(pathToFileURL(resolve(__dirname, './img/trainer', getTrainer + '.png')).href)
+      if (platform == 'qq' && config.QQ官方使用MD) {
+        await session.bot.internal.sendMessage(session.guildId, {
+          content: "111",
+          msg_type: 2,
+          markdown: {
+            custom_template_id: config.MDid,
+            params: [
+              {
+                key: config.key1,
+                values: [`<@${session.userId}>开启了盲盒`]
+              },
+              {
+                key: config.key2,
+                values: ["[img#128px #128px]"]
+              },
+              {
+                key: config.key3,
+                values: [await toUrl(ctx, pathToFileURL(resolve(__dirname, './img/trainer', getTrainer + '.png')).href)]
+              },
+              {
+                key: config.key4,
+                values: [`恭喜你获得了新训练师`]
+              },
+            ]
+          },
+          keyboard: {
+            content: {
+              "rows": [
+                { "buttons": [button(0, '点击输入新训练师名字', "", session.userId, "1", false)] },
+              ]
+            },
+          },
+          msg_id: session.messageId,
+          timestamp: session.timestamp,
+          msg_seq: Math.floor(Math.random() * 1000000),
+        })
+      } else {
+        await session.send(`${trainerImg}
 恭喜你获得了训练师
 请输入新训练师的名字:________`)
-      const trainerName = await session.prompt(25000)
+      }
+      const trainerName = await session.prompt(60000)
       if (!trainerName) {
         let randomName = getRandomName(3)
         let numr = userArr[0].trainerName.push(randomName)
@@ -2058,6 +2004,7 @@ ${jli}`
                 ]
               },
               keyboard: {
+
                 content: {
                   "rows": [
                     { "buttons": [button(2, '购买', "/购买", session.userId, "1", false)] },
@@ -2103,7 +2050,7 @@ ${jli}`
  现在不是答题时间哦
 ====================
  每天中午12点到下午
- 2点是答题时间
+ 3点是答题时间
 ====================
  答对问题可以获得
  体力或者金币
