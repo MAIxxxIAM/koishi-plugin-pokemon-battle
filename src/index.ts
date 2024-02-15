@@ -141,14 +141,15 @@ export interface Pokebattle {
   relex: Date
 }
 export async function apply(ctx, config: Config) {
-  if(config.指令使用日志){
-  ctx.on('command/before-execute', ({ session, command }) => {
-    const freeCpu = os.freemem() / os.totalmem();
-    const usedCpu = 1 - freeCpu;
-    pidusage(process.pid, (err, stats)=> {
-    console.log(`${session.userId}使用了${command.name}  当前内存占用${(usedCpu * 100).toFixed(2)}% cpu占用${(stats.cpu).toFixed(2)}%`)
-  })
-  })}
+  if (config.指令使用日志) {
+    ctx.on('command/before-execute', ({ session, command }) => {
+      const freeCpu = os.freemem() / os.totalmem();
+      const usedCpu = 1 - freeCpu;
+      pidusage(process.pid, (err, stats) => {
+        console.log(`${session.userId}使用了${command.name}  当前内存占用${(usedCpu * 100).toFixed(2)}% cpu占用${(stats.cpu).toFixed(2)}%`)
+      })
+    })
+  }
 
   const logger = ctx.logger('pokemon')
   let testcanvas: string
@@ -1254,6 +1255,7 @@ ${(h('at', { id: (session.userId) }))}`
       let overlay = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'overlay_exp.png')}`)
       if (!user) {
         //查看自己信息
+        userId = session.userId
         userArr = await ctx.database.get('pokebattle', { id: session.userId })
       } else {
 
@@ -1340,7 +1342,7 @@ ${(h('at', { id: (session.userId) }))}`
                 params: [
                   {
                     key: config.key1,
-                    values: [`<@${session.userId}>的训练师卡片`]
+                    values: [`<@${userId}>的训练师卡片`]
                   },
                   {
                     key: config.key2,
@@ -1703,7 +1705,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         let getgold = pokemonCal.mathRandomInt(500, 1200)
         let loserArr = await ctx.database.get('pokebattle', { id: loser })
         let winnerArr = await ctx.database.get('pokebattle', { id: winner })
-        let expGet = winnerArr[0].level > 99 ? 0 : winnerArr[0].level > 99 ? 0 : Math.floor(loserArr[0].level * expbase.exp[(Number(winnerArr[0].monster_1.split('.')[0]) > Number(winnerArr[0].monster_1.split('.')[1]) ? Number(winnerArr[0].monster_1.split('.')[1]) : Number(winnerArr[0].monster_1.split('.')[0])) - 1].expbase / 7)
+        let expGet = loserArr[0].level > 99 ? 0 : Math.floor(loserArr[0].level * expbase.exp[(Number(winnerArr[0].monster_1.split('.')[0]) > Number(winnerArr[0].monster_1.split('.')[1]) ? Number(winnerArr[0].monster_1.split('.')[1]) : Number(winnerArr[0].monster_1.split('.')[0])) - 1].expbase / 7)
         if (loserArr[0].level >= winnerArr[0].level + 6) {
           expGet = Math.floor(expGet * 0.2)
         }
@@ -1756,7 +1758,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
                 "rows": [
                   { "buttons": [button(2, "♂ 杂交宝可梦", "/杂交宝可梦", session.userId, "1"), button(2, "📷 捕捉宝可梦", "/捕捉宝可梦", session.userId, "2")] },
                   { "buttons": [button(2, "💳 查看信息", "/查看信息", session.userId, "3"), button(2, "⚔️ 对战", "/对战", session.userId, "4")] },
-                  { "buttons": [button(2, "⚔️ 和他对战", `/对战 ${session.userId}`, session.userId, "5")] },
+                  { "buttons": [button(2, "🎯 对手信息", `/查看信息 ${userId}`, session.userId, "5"), button(2, "⚔️ 和他对战", `/对战 ${session.userId}`, session.userId, "6")] },
                 ]
               },
             },
@@ -1781,43 +1783,53 @@ ${jli}`
         return `对战失败`
       }
     })
-  ctx.command('宝可梦').subcommand('技能扭蛋机', '消耗一个扭蛋币，抽取技能')
-    .usage(`/技能扭蛋机`)
-    .action(async ({ session }) => {
+  ctx.command('宝可梦').subcommand('技能扭蛋机 [count:number]', '消耗扭蛋币，抽取技能')
+    .usage(`/ 技能扭蛋机`)
+    .action(async ({ session }, count) => {
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
+      if (count > userArr[0].coin || count < 1) return `你的代币不足，要积极参与对战哦~`
+      if (!count) {
+        count = 1
+      }
       if (userArr.length == 0) return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
       if (userArr[0].coin < 1) { return (`你的代币不足，要积极参与对战哦~`) }
       await ctx.database.set('pokebattle', { id: session.userId }, {
-        coin: { $subtract: [{ $: 'coin' }, 1] },
+        coin: { $subtract: [{ $: 'coin' }, count] },
       })
-      let getskill = pokemonCal.pokemonskill(userArr[0].level)
-      if (userArr[0].skill == 0) {
-        userArr[0].skillbag.push(String(getskill))
+      let skilllist = []
+      let getgold=0
+      for (let i = 0; i < count; i++){
+          let getskill = pokemonCal.pokemonskill(userArr[0].level)
+          if (userArr[0].skill == 0) {
+            userArr[0].skillbag.push(String(getskill))
+            await ctx.database.set('pokebattle', { id: session.userId }, {
+              skill: getskill,
+            })
+          } else if (userArr[0].skillbag.includes(String(getskill))) {
+            getgold += 350
+            skilllist.push(`${(skillMachine.skill[getskill].skill)}(重复)`)
+            continue
+          } else {
+            userArr[0].skillbag.push(String(getskill))
+          }
+          skilllist.push(skillMachine.skill[getskill].skill)
+        }
         await ctx.database.set('pokebattle', { id: session.userId }, {
-          skill: getskill,
+          gold: { $add: [{ $: 'gold' }, getgold] },
           skillbag: userArr[0].skillbag
         })
-        return `${h('at', { id: (session.userId) })}✨✨✨
-恭喜你获得了【${(skillMachine.skill[getskill].skill)}】技能
-✨✨✨✨✨✨✨✨✨`
-      } else if (userArr[0].skillbag.includes(String(getskill))) {
-        await ctx.database.set('pokebattle', { id: session.userId }, {
-          gold: { $add: [{ $: 'gold' }, 350] },
-        })
-        return `${h('at', { id: (session.userId) })}你已经有【${(skillMachine.skill[getskill].skill)}】技能了，转换为🪙金币+350`
-      } else {
-        userArr[0].skillbag.push(String(getskill))
-        await ctx.database.set('pokebattle', { id: session.userId }, {
-          skillbag: userArr[0].skillbag
-        })
-        return `${h('at', { id: (session.userId) })}✨✨✨
-恭喜你获得了【${(skillMachine.skill[getskill].skill)}】技能
-已放入技能背包
-输入指令【装备技能 ${skillMachine.skill[getskill].skill}】来装备该技能
-✨✨✨✨✨✨✨✨✨`
-      }
-
-    })
+        await session.send(`${h('at', { id: (session.userId) })}\u200b
+你抽取了${count}个技能
+重复技能将被换成金币
+====================
+${skilllist.join('\n')}
+====================
+金币+${getgold}
+====================
+指令末尾添加数字可以连续抽取技能
+例如：【技能扭蛋机 10】`
+)
+      })
   ctx.command('宝可梦').subcommand('技能背包', '查看所有获得的技能')
     .usage(`/技能背包`)
     .action(async ({ session }) => {
