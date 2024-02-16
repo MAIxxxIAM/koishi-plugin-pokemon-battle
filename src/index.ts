@@ -43,11 +43,13 @@ export interface Config {
   精灵球定价: number
   训练师定价: number
   扭蛋币定价: number
+  改名卡定价: number
   canvas图片品质: number
   对战图片品质: number
   对战cd: number
   对战次数: number
   MDid: string
+  文字MDid: string
   key1: string
   key2: string
   key3: string
@@ -82,6 +84,7 @@ export const Config = Schema.intersect([
     精灵球定价: Schema.number().default(800),
     训练师定价: Schema.number().default(10000),
     扭蛋币定价: Schema.number().default(1500),
+    改名卡定价: Schema.number().default(60000),
     对战cd: Schema.number().default(10).description('单位：秒'),
     对战次数: Schema.number().default(15),
   }).description('数值设置'),
@@ -92,6 +95,7 @@ export const Config = Schema.intersect([
     Schema.object({
       QQ官方使用MD: Schema.const(true).required(),
       MDid: Schema.string().description('MD模板id'),
+      文字MDid: Schema.string().description('文字MD模板id(可留空)'),
       key1: Schema.string().default('tittle').description('标题'),
       key2: Schema.string().default('imgsize').description('图片大小'),
       key3: Schema.string().default('img_url').description('图片路径'),
@@ -133,6 +137,7 @@ export interface Pokebattle {
   skill: Number
   coin: Number
   gold: Number
+  changeName: Number
   skillbag: string[]
   trainer: string[]
   trainerNum: Number
@@ -212,6 +217,11 @@ export async function apply(ctx, config: Config) {
     skill: 'integer',
     coin: 'integer',
     gold: 'integer',
+    changeName: {
+      type: 'integer',
+      initial: 1,
+      nullable: false,
+    },
     skillbag: 'list',
     trainer: 'list',
     trainerNum: 'integer',
@@ -236,7 +246,13 @@ export async function apply(ctx, config: Config) {
       id: 'trainerNum',
       name: '人物盲盒',
       price: config.训练师定价
-    }]
+    },
+    {
+      id: 'changeName',
+      name: '改名卡',
+      price: config.改名卡定价
+    }
+  ]
   const exptolv = require('./ExpToLv.json')
   const expbase = require('./expbase.json')
   const skillMachine = require('./skillMachine.json')
@@ -364,9 +380,10 @@ export async function apply(ctx, config: Config) {
           } else {
             ToDo = '快去杂交出属于你的宝可梦吧'
           }
+          const playerName = userArr[0].name ? userArr[0].name : session.username.length < 6 ? session.username : session.username.slice(0, 4)
           try {
             await ctx.database.set('pokebattle', { id: session.userId }, {
-              name: session.username.length < 6 ? session.username : session.username.slice(0, 4),
+              name: playerName,
               captureTimes: { $add: [{ $: 'captureTimes' }, config.签到获得个数] },
               battleTimes: 3,
               battleToTrainer: config.对战次数,
@@ -408,7 +425,7 @@ export async function apply(ctx, config: Config) {
             ctx.drawImage(trainerimg, 21, 56, 160, 160)
             ctx.font = 'normal 30px zpix'
             ctx.fillText(userArr[0].gold + 3000, 290, 100)
-            ctx.fillText(session.username.length < 12 ? session.username : session.username.slice(0, 4) + `签到成功`, 49, 270)
+            ctx.fillText(playerName + `签到成功`, 49, 270)
             ctx.font = 'normal 20px zpix'
             ctx.fillText(`零花钱：`, 254, 65)
             ctx.font = 'normal 20px zpix'
@@ -459,6 +476,10 @@ export async function apply(ctx, config: Config) {
                     {
                       key: config.key3,
                       values: [await toUrl(ctx, img)]
+                    },
+                    {
+                      key: config.key4,
+                      values: [`每人都有一次初始的改名机会~输入【/改名】即可改名`]
                     },
                   ]
                 },
@@ -1281,7 +1302,7 @@ ${(h('at', { id: (session.userId) }))}`
         //图片服务
 
         const infoId = userArr[0].id.length > 15 ? `${userArr[0].id.slice(0, 3)}...${userArr[0].id.slice(-3)}` : userArr[0].id
-        const infoName = userArr[0].name ? `${userArr[0].name}` : session.username > 10 ? `${session.username}` : infoId
+        const infoName = userArr[0].name ? userArr[0].name : session.username > 10 ? session.username : infoId
         for (let i = 0; i < userArr[0].AllMonster.length; i++) {
           pokemonimg1[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
         }
@@ -1797,28 +1818,28 @@ ${jli}`
         coin: { $subtract: [{ $: 'coin' }, count] },
       })
       let skilllist = []
-      let getgold=0
-      for (let i = 0; i < count; i++){
-          let getskill = pokemonCal.pokemonskill(userArr[0].level)
-          if (userArr[0].skill == 0) {
-            userArr[0].skillbag.push(String(getskill))
-            await ctx.database.set('pokebattle', { id: session.userId }, {
-              skill: getskill,
-            })
-          } else if (userArr[0].skillbag.includes(String(getskill))) {
-            getgold += 350
-            skilllist.push(`${(skillMachine.skill[getskill].skill)}(重复)`)
-            continue
-          } else {
-            userArr[0].skillbag.push(String(getskill))
-          }
-          skilllist.push(skillMachine.skill[getskill].skill)
+      let getgold = 0
+      for (let i = 0; i < count; i++) {
+        let getskill = pokemonCal.pokemonskill(userArr[0].level)
+        if (userArr[0].skill == 0) {
+          userArr[0].skillbag.push(String(getskill))
+          await ctx.database.set('pokebattle', { id: session.userId }, {
+            skill: getskill,
+          })
+        } else if (userArr[0].skillbag.includes(String(getskill))) {
+          getgold += 350
+          skilllist.push(`${(skillMachine.skill[getskill].skill)}(重复)`)
+          continue
+        } else {
+          userArr[0].skillbag.push(String(getskill))
         }
-        await ctx.database.set('pokebattle', { id: session.userId }, {
-          gold: { $add: [{ $: 'gold' }, getgold] },
-          skillbag: userArr[0].skillbag
-        })
-        await session.send(`${h('at', { id: (session.userId) })}\u200b
+        skilllist.push(skillMachine.skill[getskill].skill)
+      }
+      await ctx.database.set('pokebattle', { id: session.userId }, {
+        gold: { $add: [{ $: 'gold' }, getgold] },
+        skillbag: userArr[0].skillbag
+      })
+      await session.send(`${h('at', { id: (session.userId) })}\u200b
 你抽取了${count}个技能
 重复技能将被换成金币
 ====================
@@ -1828,8 +1849,8 @@ ${skilllist.join('\n')}
 ====================
 指令末尾添加数字可以连续抽取技能
 例如：【技能扭蛋机 10】`
-)
-      })
+      )
+    })
   ctx.command('宝可梦').subcommand('技能背包', '查看所有获得的技能')
     .usage(`/技能背包`)
     .action(async ({ session }) => {
@@ -2044,12 +2065,30 @@ ${skilllist.join('\n')}
         return `找到多个物品，请输入完整名称\n${item}`
       } else {
         let tips = ''
-        if (matchedItem[0].name == '人物盲盒') { tips = `\n输入【盲盒】来开启盲盒` }
+        switch (matchedItem[0].name) {
+          case '人物盲盒':
+            tips = `输入【盲盒】来开启盲盒`;
+            break;
+          case '扭蛋代币':
+            tips = `输入【技能扭蛋机】来抽取技能`;
+            break;
+          case '精灵球':
+            tips = `输入【捕捉宝可梦】来捕捉宝可梦`;
+            break;
+          case '改名卡':
+            tips = `输入【改名】改名`;
+            break;
+        }
         await ctx.database.set('pokebattle', { id: session.userId }, {
           gold: { $subtract: [{ $: 'gold' }, matchedItem[0].price * num] },
           [matchedItem[0].id]: { $add: [{ $: matchedItem[0].id }, num] }
         })
-        return `购买成功\n${matchedItem[0].name}+${num}${tips}`
+        return `${h('at', { id: (session.userId) })}\u200b
+购买成功
+====================
+${matchedItem[0].name}+${num}
+====================
+tips:${tips}`
       }
     })
 
@@ -2145,6 +2184,7 @@ ${question}
 回复机器人输入答案序号或者答案文字`)
       }
       let re = await session.prompt(300000)
+      let end: string = ''
       if (!re) return `你好像还在犹豫，一会再来吧`
       if ('1234'.includes(re)) {
         re = ans[Number(re) - 1]
@@ -2164,16 +2204,94 @@ ${question}
           await ctx.database.set('pokebattle', { id: userId }, {
             gold: { $add: [{ $: 'gold' }, 100 + 50 * userArr[0].ultramonster.length] },
           })
-          return `回答正确，你获得了${100 + 50 * userArr[0].ultramonster.length}金币${y}`
+          end = `回答正确\r你获得了${100 + 50 * userArr[0].ultramonster.length}金币${y}`
         }
-        await ctx.database.set('pokebattle', { id: userId }, {
-          battleToTrainer: { $add: [{ $: 'battleToTrainer' }, userArr[0].ultramonster.length + 1] },
-        })
-        return `回答正确，你获得了${userArr[0].ultramonster.length + 1}体力${y}`
+        else {
+          await ctx.database.set('pokebattle', { id: userId }, {
+            battleToTrainer: { $add: [{ $: 'battleToTrainer' }, userArr[0].ultramonster.length + 1] },
+          })
+          end = `回答正确\r你获得了${userArr[0].ultramonster.length + 1}体力${y}`
+        }
       }
-      return `回答错误，正确答案是${right}`
+      else {
+        end = `回答错误\r正确答案是${right}`
+      }
+      if (platform == 'qq' && config.QQ官方使用MD && config.文字MDid) {
+        await session.bot.internal.sendMessage(session.guildId, {
+          content: "111",
+          msg_type: 2,
+          markdown: {
+            custom_template_id: config.文字MDid,
+            params: [
+              {
+                key: config.key4,
+                values: [`\r#\t<@${userId}>问答结果:`]
+              },
+              {
+                key: config.key5,
+                values: [`${end}`]
+              },
+              {
+                key: config.key6,
+                values: [`\r\r>\t当前体力：${userArr[0].battleToTrainer}\r当前金币：${userArr[0].gold}`]
+              },
+            ]
+          },
+          keyboard: {
+            content: {
+              "rows": [
+                { "buttons": [button(2, "📜 继续答题", `/宝可问答`, userId, "1"), button(2, "💳 查看信息", "/查看信息", userId, "2")] },
+              ]
+            },
+          },
+          msg_id: session.messageId,
+          timestamp: session.timestamp,
+          msg_seq: Math.floor(Math.random() * 1000000),
+        })
+        return
+      }
+      return `\u200b
+====================
+${end}
+====================
+当前体力：${userArr[0].battleToTrainer}
+当前金币：${userArr[0].gold}`
     }
     )
+  ctx.command('宝可梦').subcommand('改名 [name:text]', '改名，请输入2-6位中文')
+    .action(async ({ session }, name: string) => {
+      const userArr = await ctx.database.get('pokebattle', { id: session.userId })
+      if (userArr[0].changeName < 1) return `你的改名次数已经用完`
+      let regex = /^[\u4e00-\u9fa5]{2,6}$/
+      if (!regex.test(name)) {
+        do {
+          await session.send(`请回复2-6位中文`)
+          await session.bot.internal.sendMessage(session.channelId, {
+            content: "111",
+            msg_type: 2,
+            keyboard: {
+              content: {
+                "rows": [
+                  { "buttons": [button(0, '点击输入新名字', "", session.userId, "1", false)] },
+                ]
+              },
+            },
+            msg_id: session.messageId,
+            timestamp: session.timestamp,
+            msg_seq: Math.floor(Math.random() * 1000000),
+          })
+          const entry = await session.prompt(60000)
+          name = entry
+        }
+        while (!regex.test(name))
+      }
+      if (userArr.length == 0) return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
+      await ctx.database.set('pokebattle', { id: session.userId }, {
+        name: name,
+        changeName: { $subtract: [{ $: 'changeName' }, 1] }
+      })
+      return `你的名字已经改为【${name}】`
+    })
 
   function is12to14() {
     const now = new Date()
