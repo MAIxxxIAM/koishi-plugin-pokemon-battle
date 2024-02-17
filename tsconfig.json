@@ -16,6 +16,6 @@
   },
   "include": [
     "src",
-    "src/q.json"
+    "src/assets/json/*.json"
   ],
 }

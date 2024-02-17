@@ -1,13 +1,16 @@
 import { Schema, h, $ } from 'koishi'
-import pokemonCal from './module/pokemon'
+import pokemonCal from './utils/pokemon'
+import { button, catchbutton, findItem, getPic, getRandomName, is12to14, moveToFirst, toUrl, urlbutton } from './utils/mothed'
 import { pathToFileURL } from 'url'
 import { resolve } from 'path'
 import * as fs from 'fs'
 import * as path from 'path'
-import { exec } from 'child_process'
-import { qu, an, imglk } from './q.json'
 import os from 'os'
 import pidusage from 'pidusage'
+import { exec } from 'child_process'
+
+import { qu, an, imglk, expToLv, expBase, skillMachine } from './utils/data'
+
 
 
 export const name = 'pokemon-battle'
@@ -15,6 +18,7 @@ export const name = 'pokemon-battle'
 export const inject = {
   required: ['database', 'downloads', 'canvas']
 }
+
 export const usage = `
 <a class="el-button" target="_blank" href="http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=bFdYGdp562abZWTmbHPAEw52aQq_fWqu&authKey=TPF8n37idd8paD0YfQJhpEax9PKe9sRPUk5GToIMr6%2Fs5I3v4ycBmT4k%2FGch0z8S&noverify=0&group_code=709239435"><b>加入宝可梦融合研究基金会  </b></a>
 
@@ -145,7 +149,16 @@ export interface Pokebattle {
   battlecd: Date
   relex: Date
 }
-export async function apply(ctx, config: Config) {
+
+export let testcanvas: string
+export let logger: any
+export let shop: any[]
+export let config: Config
+
+export async function apply(ctx, conf: Config) {
+
+  config = conf
+
   if (config.指令使用日志) {
     ctx.on('command/before-execute', ({ session, command }) => {
       const freeCpu = os.freemem() / os.totalmem();
@@ -156,11 +169,11 @@ export async function apply(ctx, config: Config) {
     })
   }
 
-  const logger = ctx.logger('pokemon')
-  let testcanvas: string
+  logger = ctx.logger('pokemon')
+
   try {
     testcanvas = 'file://'
-    await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'spawn.png')}`)
+    await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'spawn.png')}`)
     logger.info('当前使用的是puppeteer插件提供canvas服务')
   } catch (e) {
     testcanvas = ''
@@ -197,8 +210,6 @@ export async function apply(ctx, config: Config) {
   }
 
 
-
-
   ctx.database.extend('pokebattle', {
     id: 'string',
     name: 'string',
@@ -231,7 +242,8 @@ export async function apply(ctx, config: Config) {
   }, {
     primary: "id"
   })
-  const shop = [
+
+  shop = [
     {
       id: 'captureTimes',
       name: '精灵球',
@@ -253,11 +265,11 @@ export async function apply(ctx, config: Config) {
       price: config.改名卡定价
     }
   ]
-  const exptolv = require('./ExpToLv.json')
-  const expbase = require('./expbase.json')
-  const skillMachine = require('./skillMachine.json')
-  let banID = ['150.150', '151.151', '144.144', '145.145', '146.146']
-  //宝可梦帮助图像化
+
+
+  const banID = ['150.150', '151.151', '144.144', '145.145', '146.146']
+
+
   ctx.command('宝可梦').subcommand('解压图包文件', { authority: 4 })
     .action(async ({ session }) => {
       exec('tar -xvf ./downloads/bucket1-mnlaakixr8b0v4yngpq865qr144y63jx/image.tar', async (error, stdout, stderr) => {
@@ -271,9 +283,10 @@ export async function apply(ctx, config: Config) {
       })
     })
 
+
   ctx.command("宝可梦", '宝可梦玩法帮助').action(async ({ session }) => {
     const { platform } = session
-    const imgurl = resolve(__dirname, `./img/help.jpg`)
+    const imgurl = resolve(__dirname, `./assets/img/components/help.jpg`)
     if (platform == 'qq' && config.QQ官方使用MD) {
       try {
         await session.bot.internal.sendMessage(session.channelId, {
@@ -292,7 +305,7 @@ export async function apply(ctx, config: Config) {
               },
               {
                 key: config.key3,
-                values: [await toUrl(ctx, `file://${resolve(__dirname, `./img/help.jpg`)}`)]
+                values: [await toUrl(ctx, `file://${imgurl}`)]
               },
             ]
           },
@@ -338,10 +351,10 @@ export async function apply(ctx, config: Config) {
       }
       return
     }
-
     return h.image(pathToFileURL(imgurl).href)
   })
-  //签到
+
+
   ctx.command('宝可梦').subcommand('宝可梦签到', '每日的宝可梦签到')
     .alias(config.签到指令别名)
     .usage(`/${config.签到指令别名}`)
@@ -366,9 +379,10 @@ export async function apply(ctx, config: Config) {
           }
           let expGet: number
           if (userArr[0].monster_1 == '0') {
-            expGet = Math.floor(userArr[0].level * expbase.exp[Number(userArr[0].AllMonster[0].split('.')[0]) - 1].expbase / 7)
+            //更改
+            expGet = Math.floor(userArr[0].level * Number(expBase.exp[Number(userArr[0].AllMonster[0].split('.')[0]) - 1].expbase) / 7)
           } else {
-            expGet = userArr[0].level > 99 ? 0 : Math.floor(userArr[0].level * expbase.exp[(Number(userArr[0].monster_1.split('.')[0]) > Number(userArr[0].monster_1.split('.')[1]) ? Number(userArr[0].monster_1.split('.')[1]) : Number(userArr[0].monster_1.split('.')[0])) - 1].expbase / 7 * (Math.random() + 0.5))
+            expGet = userArr[0].level > 99 ? 0 : Math.floor(userArr[0].level * Number(expBase.exp[(Number(userArr[0].monster_1.split('.')[0]) > Number(userArr[0].monster_1.split('.')[1]) ? Number(userArr[0].monster_1.split('.')[1]) : Number(userArr[0].monster_1.split('.')[0])) - 1].expbase) / 7 * (Math.random() + 0.5))
           }
           let expNew = pokemonCal.expCal(userArr[0].level, userArr[0].exp + expGet)[1]
           let lvNew = pokemonCal.expCal(userArr[0].level, userArr[0].exp + expGet)[0]
@@ -400,22 +414,22 @@ export async function apply(ctx, config: Config) {
             })
           } catch (e) { return `请再试一次` }
           //图片服务
-          let image = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', '签到.png')}`)
-          let pokemonimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/0.png`)}`)
+          let image = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', '签到.png')}`)
+          let pokemonimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./assets/img/basepokemon/0.png`)}`)
           let pokemonimg1 = []
           for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-            pokemonimg1[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
+            pokemonimg1[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./assets/img/basepokemon/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
           }
           let ultramonsterimg = []
           for (let i = 0; i < 5; i++) {
-            ultramonsterimg[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/${banID[i].split('.')[0]}.png`)}`)
+            ultramonsterimg[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./assets/img/basepokemon/${banID[i].split('.')[0]}.png`)}`)
           }
           if (userArr[0].monster_1 !== '0') pokemonimg = await ctx.canvas.loadImage(`${testcanvas}${resolve('./image/' + userArr[0].monster_1 + '.png')}`)
           let trainers = '0'
           if (userArr[0].trainer[0] !== '0') { trainers = userArr[0].trainer[0] }
-          let trainerimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './img/trainer/' + trainers + '.png')}`)
-          let expbar = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'expbar.png')}`)
-          let overlay = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'overlay_exp.png')}`)
+          let trainerimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/trainer/' + trainers + '.png')}`)
+          let expbar = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'expbar.png')}`)
+          let overlay = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'overlay_exp.png')}`)
           let time = Date.now()
           let date = new Date(time).toLocaleDateString()
           let img
@@ -441,7 +455,7 @@ export async function apply(ctx, config: Config) {
             ctx.fillText(`   spec:${pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), lvNew)[3]}  spe:${pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), lvNew)[4]}`, 30, 740)
             ctx.fillText(date, 308, 173)
             ctx.fillText('Lv.' + lvNew.toString(), 328, 198)
-            ctx.drawImage(overlay, 318, 203, 160 * expNew / exptolv.exp_lv[lvNew].exp, 8)
+            ctx.drawImage(overlay, 318, 203, 160 * expNew / expToLv.exp_lv[lvNew].exp, 8)
             ctx.drawImage(expbar, 300, 200, 180, 20)
             ctx.font = 'bold 20px zpix'
             for (let i = 0; i < 5; i++) {
@@ -550,8 +564,8 @@ export async function apply(ctx, config: Config) {
           trainerName: ['默认训练师']
         })
         //图片服务
-        const bg_img = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'spawn.png')}`)
-        const pokemonimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/${firstMonster_}.png`)}`)
+        const bg_img = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'spawn.png')}`)
+        const pokemonimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./assets/img/basepokemon/${firstMonster_}.png`)}`)
         const replyImg = await ctx.canvas.render(512, 384, async (ctx) => {
           ctx.drawImage(bg_img, 0, 0, 512, 384)
           ctx.drawImage(pokemonimg, 99, 285, 64, 64)
@@ -635,6 +649,8 @@ export async function apply(ctx, config: Config) {
 
       }
     })
+
+
   ctx.command('宝可梦').subcommand('捕捉宝可梦', '随机遇到3个宝可梦')
     .alias(config.捕捉指令别名)
     .usage(`/${config.捕捉指令别名}`)
@@ -661,11 +677,11 @@ export async function apply(ctx, config: Config) {
           //创建图片
           let poke_img = []
           let dataUrl
-          let bg_img = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'catchBG.png')}`)
-          poke_img[0] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './images', grassMonster[0] + '.png')}`)
-          poke_img[1] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './images', grassMonster[1] + '.png')}`)
-          poke_img[2] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './images', grassMonster[2] + '.png')}`)
-          let grassImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'Grass.png')}`)
+          let bg_img = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'catchBG.png')}`)
+          poke_img[0] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/basepokemon', grassMonster[0] + '.png')}`)
+          poke_img[1] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/basepokemon', grassMonster[1] + '.png')}`)
+          poke_img[2] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/basepokemon', grassMonster[2] + '.png')}`)
+          let grassImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'Grass.png')}`)
           let catchpockmon_img = await ctx.canvas.render(512, 512, async (ctx) => {
             //载入背景
             ctx.drawImage(bg_img, 0, 0, 512, 512)
@@ -878,11 +894,11 @@ ${(h('at', { id: (session.userId) }))}
             //图片服务
             let pokemonimg1: string[] = []
             let dataUrl: string
-            const bgImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'bag.png')}`)
+            const bgImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'bag.png')}`)
             for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-              pokemonimg1[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
+              pokemonimg1[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./assets/img/basepokemon/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
             }
-            const image = await ctx.canvas.render(512, 381, async ctx => {
+            await ctx.canvas.render(512, 381, async ctx => {
               ctx.drawImage(bgImg, 0, 0, 512, 381)
               ctx.font = 'bold 20px zpix'
               for (let i = 0; i < pokemonimg1.length; i++) {
@@ -993,6 +1009,8 @@ ${(h('at', { id: (session.userId) }))}
         }
       }
     })
+
+
   ctx.command('宝可梦').subcommand('杂交宝可梦', '选择两只宝可梦杂交')
     .alias(config.杂交指令别名)
     .usage(`/${config.杂交指令别名}`)
@@ -1004,9 +1022,9 @@ ${(h('at', { id: (session.userId) }))}
       if (userArr.length != 0) {
         //图片服务
         let pokemonimg1: string[] = []
-        const bgImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'bag.png')}`)
+        const bgImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'bag.png')}`)
         for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-          pokemonimg1[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
+          pokemonimg1[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./assets/img/basepokemon/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
         }
         const image = await ctx.canvas.render(512, 381, async ctx => {
           ctx.drawImage(bgImg, 0, 0, 512, 381)
@@ -1121,7 +1139,7 @@ ${(h('at', { id: (session.userId) }))}
             let dataUrl: string
             if (userArr[0].monster_1 != '0') {
               //图片服务
-              let img_fuse = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao/fuse.png')}`)
+              let img_fuse = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components/fuse.png')}`)
               let img_F = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${pokeM.split('.')[0]}.png`)}`)
               let img_M = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${pokeW.split('.')[0]}.png`)}`)
               let img_S = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${dan[1]}.png`)}`)
@@ -1260,6 +1278,8 @@ ${(h('at', { id: (session.userId) }))}`
         return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
       }
     })
+
+
   ctx.command('宝可梦').subcommand('查看信息 <user:string>', '查看用户信息')
     .alias(config.查看信息指令别名)
     .usage(`/${config.查看信息指令别名} @user`)
@@ -1271,9 +1291,9 @@ ${(h('at', { id: (session.userId) }))}`
       let userArr: string | any[]
       let userId: string
       let infoImgSelf
-      const infoImgSelf_bg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'trainercard.png')}`)
-      let expbar = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'expbar.png')}`)
-      let overlay = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'overlay_exp.png')}`)
+      const infoImgSelf_bg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'trainercard.png')}`)
+      let expbar = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'expbar.png')}`)
+      let overlay = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'overlay_exp.png')}`)
       if (!user) {
         //查看自己信息
         userId = session.userId
@@ -1304,15 +1324,15 @@ ${(h('at', { id: (session.userId) }))}`
         const infoId = userArr[0].id.length > 15 ? `${userArr[0].id.slice(0, 3)}...${userArr[0].id.slice(-3)}` : userArr[0].id
         const infoName = userArr[0].name ? userArr[0].name : session.username > 10 ? session.username : infoId
         for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-          pokemonimg1[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
+          pokemonimg1[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./assets/img/basepokemon/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
         }
         for (let i = 0; i < 5; i++) {
-          ultramonsterimg[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/${banID[i].split('.')[0]}.png`)}`)
+          ultramonsterimg[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./assets/img/basepokemon/${banID[i].split('.')[0]}.png`)}`)
         }
         if (userArr[0].monster_1 !== '0') pokemonimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${userArr[0].monster_1}.png`)}`)
         let trainers = '0'
         if (userArr[0].trainer[0] !== '0') { trainers = userArr[0].trainer[0] }
-        let trainerimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./img/trainer/${trainers}.png`)}`)
+        let trainerimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./assets/img/trainer/${trainers}.png`)}`)
         const infoImgSelfClassic = await ctx.canvas.render(485, 703, async ctx => {
           ctx.drawImage(infoImgSelf_bg, 0, 0, 485, 703)
           if (userArr[0].monster_1 !== '0') {
@@ -1348,7 +1368,7 @@ ${(h('at', { id: (session.userId) }))}`
           ctx.fillText(userArr[0].level, 358, 73)
           ctx.font = 'bold 25px zpix'
           ctx.fillText('EXP>>                <<', 105, 650)
-          ctx.drawImage(overlay, 181, 644, 160 * userArr[0].exp / exptolv.exp_lv[userArr[0].level].exp, 8)
+          ctx.drawImage(overlay, 181, 644, 160 * userArr[0].exp / expToLv.exp_lv[userArr[0].level].exp, 8)
           ctx.drawImage(expbar, 163, 641, 180, 20)
           infoImgSelf = await ctx.canvas.toDataURL('image/jpeg', config.canvas图片品质)
         })
@@ -1424,6 +1444,8 @@ ${(h('at', { id: (session.userId) }))}`
         //不存在数据
       }
     })
+
+
   ctx.command('宝可梦').subcommand('放生', '放生宝可梦')
     .alias(config.放生指令别名)
     .usage(`/${config.放生指令别名}`)
@@ -1435,9 +1457,9 @@ ${(h('at', { id: (session.userId) }))}`
       //图片服务
       let pokemonimg1: string[] = []
       let dataUrl: string
-      const bgImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './qiandao', 'bag.png')}`)
+      const bgImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'bag.png')}`)
       for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-        pokemonimg1[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./images/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
+        pokemonimg1[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./assets/img/basepokemon/${userArr[0].AllMonster[i].split('.')[0]}.png`)}`)
       }
       const image = await ctx.canvas.render(512, 381, async ctx => {
         ctx.drawImage(bgImg, 0, 0, 512, 381)
@@ -1505,7 +1527,7 @@ ${(h('at', { id: (session.userId) }))}`
         if (userArr[0].AllMonster.length === 1) return `${(h('at', { id: (session.userId) }))}你只剩一只宝可梦了，无法放生`
         // let discarded=userArr[0].AllMonster[Number(choose)-1]
         let chsNum = Number(choose) - 1
-        let baseexp = expbase.exp[Number(String(userArr[0].AllMonster[chsNum]).split('.')[0]) - 1].expbase
+        let baseexp = Number(expBase.exp[Number(String(userArr[0].AllMonster[chsNum]).split('.')[0]) - 1].expbase)
         let expGet = userArr[0].level > 99 ? 0 : Math.floor(userArr[0].level * baseexp / 7)
         let discarded = userArr[0].AllMonster.splice(Number(choose) - 1, 1)
         let expNew = pokemonCal.expCal(userArr[0].level, userArr[0].exp + expGet)[1]
@@ -1529,6 +1551,8 @@ ${(h('at', { id: (session.userId) }))}
       }
 
     })
+
+
   ctx.command('宝可梦').subcommand('属性', '查看战斗宝可梦属性')
     .usage(`/属性`)
     .action(async ({ session },) => {
@@ -1600,6 +1624,8 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
       `
 
     })
+
+
   ctx.command('宝可梦').subcommand('对战 <user>', '和其他训练师对战')
     .usage(`/对战 @user`)
     .action(async ({ session }, user) => {
@@ -1726,7 +1752,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         let getgold = pokemonCal.mathRandomInt(500, 1200)
         let loserArr = await ctx.database.get('pokebattle', { id: loser })
         let winnerArr = await ctx.database.get('pokebattle', { id: winner })
-        let expGet = loserArr[0].level > 99 ? 0 : Math.floor(loserArr[0].level * expbase.exp[(Number(winnerArr[0].monster_1.split('.')[0]) > Number(winnerArr[0].monster_1.split('.')[1]) ? Number(winnerArr[0].monster_1.split('.')[1]) : Number(winnerArr[0].monster_1.split('.')[0])) - 1].expbase / 7)
+        let expGet = loserArr[0].level > 99 ? 0 : Math.floor(loserArr[0].level * Number(expBase.exp[(Number(winnerArr[0].monster_1.split('.')[0]) > Number(winnerArr[0].monster_1.split('.')[1]) ? Number(winnerArr[0].monster_1.split('.')[1]) : Number(winnerArr[0].monster_1.split('.')[0])) - 1].expbase) / 7)
         if (loserArr[0].level >= winnerArr[0].level + 6) {
           expGet = Math.floor(expGet * 0.2)
         }
@@ -1804,6 +1830,8 @@ ${jli}`
         return `对战失败`
       }
     })
+
+
   ctx.command('宝可梦').subcommand('技能扭蛋机 [count:number]', '消耗扭蛋币，抽取技能')
     .usage(`/ 技能扭蛋机`)
     .action(async ({ session }, count) => {
@@ -1851,6 +1879,8 @@ ${skilllist.join('\n')}
 例如：【技能扭蛋机 10】`
       )
     })
+
+
   ctx.command('宝可梦').subcommand('技能背包', '查看所有获得的技能')
     .usage(`/技能背包`)
     .action(async ({ session }) => {
@@ -1858,6 +1888,8 @@ ${skilllist.join('\n')}
       if (userArr.length == 0) return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
       return pokemonCal.skillbag(userArr[0].skillbag) ? `${h('at', { id: (session.userId) })}你的技能背包：\n${pokemonCal.skillbag(userArr[0].skillbag)}` : `你还没有技能哦\n签到领取代币到【技能扭蛋机】抽取技能吧`
     })
+
+
   ctx.command('宝可梦').subcommand('装备技能 <skill>', '装备技能')
     .usage(`/装备技能 <技能名字>`)
     .action(async ({ session }, skill) => {
@@ -1871,6 +1903,8 @@ ${skilllist.join('\n')}
       })
       return `${h('at', { id: (session.userId) })}成功装备了【${skill}】技能`
     })
+
+
   ctx.command('宝可梦').subcommand('查询技能 <skill>', '查询技能信息')
     .usage(`/查询技能 <技能名字>|<空>`)
     .action(async ({ session }, skill) => {
@@ -1884,6 +1918,8 @@ ${skilllist.join('\n')}
         return `输入错误，没有这个技能哦`
       }
     })
+
+
   ctx.command('宝可梦').subcommand('更换训练师 <name:string>', '更换训练师,留空则查看所有训练师')
     .usage(`/更换训练师 <训练师名字>|<空>`)
     .action(async ({ session }, name) => {
@@ -1902,7 +1938,7 @@ ${skilllist.join('\n')}
           trainer: newTrainer,
           trainerName: newTrainerName
         })
-        return `${h('at', { id: (session.userId) })}成功更换了训练师${h.image(pathToFileURL(resolve(__dirname, './img/trainer', newTrainer[0] + '.png')).href)}`
+        return `${h('at', { id: (session.userId) })}成功更换了训练师${h.image(pathToFileURL(resolve(__dirname, './assets/img/trainer', newTrainer[0] + '.png')).href)}`
       }
       if (userArr[0].trainerName.includes(name)) {
         const distance = userArr[0].trainerName.indexOf(name)
@@ -1912,10 +1948,11 @@ ${skilllist.join('\n')}
           trainer: newTrainer,
           trainerName: newTrainerName
         })
-        return `${h('at', { id: (session.userId) })}成功更换了训练师${h.image(pathToFileURL(resolve(__dirname, './img/trainer', newTrainer[0] + '.png')).href)}`
+        return `${h('at', { id: (session.userId) })}成功更换了训练师${h.image(pathToFileURL(resolve(__dirname, './assets/img/trainer', newTrainer[0] + '.png')).href)}`
       }
 
     })
+
 
   ctx.command('宝可梦').subcommand('盲盒', '开启盲盒，抽取训练师')
     .usage(`/盲盒`)
@@ -1929,7 +1966,7 @@ ${skilllist.join('\n')}
         getTrainer = String(pokemonCal.mathRandomInt(0, 60))
       }
       userArr[0].trainer.push(getTrainer)
-      const trainerImg = h.image(pathToFileURL(resolve(__dirname, './img/trainer', getTrainer + '.png')).href)
+      const trainerImg = h.image(pathToFileURL(resolve(__dirname, './assets/img/trainer', getTrainer + '.png')).href)
       if (platform == 'qq' && config.QQ官方使用MD) {
         await session.bot.internal.sendMessage(session.guildId, {
           content: "111",
@@ -1947,7 +1984,7 @@ ${skilllist.join('\n')}
               },
               {
                 key: config.key3,
-                values: [await toUrl(ctx, pathToFileURL(resolve(__dirname, './img/trainer', getTrainer + '.png')).href)]
+                values: [await toUrl(ctx, pathToFileURL(resolve(__dirname, './assets/img/trainer', getTrainer + '.png')).href)]
               },
               {
                 key: config.key4,
@@ -1993,6 +2030,7 @@ ${skilllist.join('\n')}
 输入【更换训练师】可以更换你的训练师`
     })
 
+
   ctx.command('宝可梦').subcommand('购买 <item:string> [num:number]', '购买物品，或查看商店')
     .usage(`/购买 <物品名称> [数量]|<空>`)
     .example('购买 精灵球 10')
@@ -2028,7 +2066,7 @@ ${skilllist.join('\n')}
                   },
                   {
                     key: config.key3,
-                    values: [await toUrl(ctx, `file://${resolve(__dirname, `img/trainer/${userArr[0].trainer[0]}.png`)}`)]
+                    values: [await toUrl(ctx, `file://${resolve(__dirname, `assets/img/trainer/${userArr[0].trainer[0]}.png`)}`)]
                   },
                   {
                     key: config.key4,
@@ -2091,6 +2129,7 @@ ${matchedItem[0].name}+${num}
 tips:${tips}`
       }
     })
+
 
   ctx.command('宝可梦').subcommand('宝可问答', '回答问题，获得奖励')
     .action(async ({ session }) => {
@@ -2258,6 +2297,8 @@ ${end}
 当前金币：${userArr[0].gold}`
     }
     )
+
+
   ctx.command('宝可梦').subcommand('改名 [name:text]', '改名，请输入2-6位中文')
     .action(async ({ session }, name: string) => {
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
@@ -2293,213 +2334,5 @@ ${end}
       return `你的名字已经改为【${name}】`
     })
 
-  function is12to14() {
-    const now = new Date()
-    let hours = now.getUTCHours() + 8
-    if (hours >= 24) {
-      hours -= 24
-    }
-    return hours >= 12 && hours <= 14
-  }
-  async function getPic(ctx, log, user, tar) {
-    try {
-      let att: Pokebattle, def: Pokebattle
-      if (user.power[4] > tar.power[4]) { att = user; def = tar } else { att = tar; def = user }
-      const attPerson = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `img/trainer/${att.trainer[0]}.png`)}`)
-      const defPerson = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `img/trainer/${def.trainer[0]}.png`)}`)
-      const attPokemon = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${att.monster_1}.png`)}`)
-      const defPokemon = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${def.monster_1}.png`)}`)
-      const backimage = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `img/battle.png`)}`)
-      let array = log.split('\n')
-      let attCount: number
-      let defCount: number
-      if (array.length % 2 == 0) { attCount = array.length / 2; defCount = array.length / 2 - 1 } else { attCount = Math.floor(array.length / 2); defCount = Math.floor(array.length / 2) }
-      let dataUrl: any
-      await ctx.canvas.render(712, 750, async (ctx) => {
-        ctx.drawImage(backimage, 0, 0, 712, 750)
-        ctx.save()
-        ctx.translate(712 / 2, 0)
-        ctx.scale(-1, 1)
-        ctx.drawImage(attPerson, 202, 24, 130, 130)
-        ctx.drawImage(attPokemon, 141, 83, 130, 130)
-        ctx.restore()
-        ctx.drawImage(defPerson, 558, 24, 130, 130)
-        ctx.drawImage(defPokemon, 488, 83, 130, 130)
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.font = 'normal 24px zpix'
-        ctx.fillStyle = 'white'
-        ctx.fillText(array[array.length - 1], 356, 722)
-        ctx.fillStyle = 'black'
-        for (let i = 0; i < array.length - 1; i++) {
-          ctx.fillText(`⚔️${array[i]}⚔️`, 356, 300 + 60 * (i))
-          if (i > 4) { break }
-        }
-        dataUrl = await ctx.canvas.toDataURL('image/jpeg', config.canvas图片品质)
-      })
-      return dataUrl
-    } catch (e) {
-      logger.info(e)
-      return `渲染失败`
-    }
-  }
-  function findItem(item: string) {
-    const matchedKey = shop.filter(key => key.name.includes(item))
-    return matchedKey
-  }
-  function getRandomName(length: number) {
-    let result = ''
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-    const charactersLength = characters.length
-    for (let i = 0; i < length; i++) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength))
-    }
-    return result
-  }
-  function moveToFirst(array: any[], element: any) {
-    const index = array.indexOf(element)
-    if (index !== -1) {
-      array.splice(index, 1)
-      array.unshift(element)
-    }
-    return array
-  }
-  async function toUrl(ctx, img) {
-    const { url } = await ctx.get('server.temp').create(img)
-    return url
-  }
-  function catchbutton(a: string, b: string, c: string, d: string) {
-    return {
-      "rows": [
-        {
-          "buttons": [
-            {
-              "id": "1",
-              "render_data": {
-                "label": "🕹️捕捉" + a,
-                "visited_label": "捕捉成功"
-              },
-              "action": {
-                "type": 2,
-                "permission": {
-                  "type": 0,
-                  "specify_user_ids": [d]
-                },
-                "click_limit": 10,
-                "unsupport_tips": "请输入@Bot 1",
-                "data": "1",
-                "enter": true
-              },
 
-            }
-          ]
-        },
-        {
-          "buttons": [
-            {
-              "id": "2",
-              "render_data": {
-                "label": "🕹️捕捉" + b,
-                "visited_label": "捕捉成功"
-              },
-              "action": {
-                "type": 2,
-                "permission": {
-                  "type": 0,
-                  "specify_user_ids": [d]
-                },
-                "click_limit": 10,
-                "unsupport_tips": "请输入@Bot 2",
-                "data": "2",
-                "enter": true
-              }
-            }
-          ]
-        },
-        {
-          "buttons": [
-            {
-              "id": "3",
-              "render_data": {
-                "label": "🕹️捕捉" + c,
-                "visited_label": "捕捉成功"
-              },
-              "action": {
-                "type": 2,
-                "permission": {
-                  "type": 0,
-                  "specify_user_ids": [d]
-                },
-                "click_limit": 10,
-                "unsupport_tips": "请输入@Bot 3",
-                "data": "3",
-                "enter": true
-              }
-            }
-          ]
-        }
-      ]
-    }
-  }
-  function button(pt: number, a: string, b: string, d: string, c: string, enter = true) {
-
-    return {
-      "id": c,
-      "render_data": {
-        "label": a,
-        "visited_label": a
-      },
-      "action": {
-        "type": 2,
-        "permission": {
-          "type": pt,
-          "specify_user_ids": [d]
-        },
-        "click_limit": 10,
-        "unsupport_tips": "请输入@Bot 1",
-        "data": b,
-        "enter": enter
-      },
-    }
-  }
-  function urlbutton(pt: number, a: string, b: string, d: string, c: string,) {
-
-    return {
-      "id": c,
-      "render_data": {
-        "label": a,
-        "visited_label": a,
-        "style": 1
-      },
-      "action": {
-        "type": 0,
-        "permission": {
-          "type": pt,
-          "specify_user_ids": [d]
-        },
-        "click_limit": 10,
-        "unsupport_tips": "请输入@Bot 1",
-        "data": b
-      },
-    }
-  }
-  function actionbutton(a: string, b: string, d: string, c: string, t: string, id: string) {
-    return {
-      "id": c,
-      "render_data": {
-        "label": a,
-        "visited_label": `${a}-已选`
-      },
-      "action": {
-        "type": 1,
-        "permission": {
-          "type": 0,
-          "specify_user_ids": [d]
-        },
-        "click_limit": 10,
-        "unsupport_tips": "请输入@Bot",
-        "data": t + "=" + b + "=" + id,
-      },
-    }
-  }
 }

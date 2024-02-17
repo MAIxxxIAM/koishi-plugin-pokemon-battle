@@ -1,10 +1,11 @@
-const exptolv = require('../ExpToLv.json')
-const Base = require('../PokemonBase.json')
-const skillMachine = require('../skillMachine.json')
-export const using = ['database']
+import { expToLv, skillMachine, pokemonBase } from './data'
+
 import { pathToFileURL } from 'url'
 import { resolve } from 'path'
 import { h } from "koishi"
+
+const exptolv = expToLv
+const Base = pokemonBase
 
 const pokemonCal = {
   power(a: string[], b: number) {
@@ -19,6 +20,7 @@ const pokemonCal = {
       return ['0', '0', '0', '0', '0']
     }
   },
+
   exp_bar(a: number, b: number) {
     let exp_bar = ['=', '=', '=', '=', '=', '=', '=', '=', '=', '=']
     let nowExp = b / exptolv.exp_lv[a].exp * 100
@@ -26,6 +28,7 @@ const pokemonCal = {
     return exp_bar.join('')
 
   },
+
   pokeBase(a) {
     try {
       let poke = a.split('.')
@@ -42,13 +45,13 @@ const pokemonCal = {
           String(Math.floor(Number(Base.Base[pokeF].def) < Number(Base.Base[pokeM].def) ? Number(Base.Base[pokeF].def) * 0.2 + Number(Base.Base[pokeM].def) * 0.8 : Number(Base.Base[pokeF].def) * 0.8 + Number(Base.Base[pokeM].def) * 0.2)),
           String(Math.floor(Number(Base.Base[pokeF].spec) < Number(Base.Base[pokeM].spec) ? Number(Base.Base[pokeF].spec) * 0.2 + Number(Base.Base[pokeM].spec) * 0.8 : Number(Base.Base[pokeF].spec) * 0.8 + Number(Base.Base[pokeM].spec) * 0.2)),
           String(Math.floor(Number(Base.Base[pokeF].spe) < Number(Base.Base[pokeM].spe) ? Number(Base.Base[pokeF].spe) * 0.2 + Number(Base.Base[pokeM].spe) * 0.8 : Number(Base.Base[pokeF].spe) * 0.8 + Number(Base.Base[pokeM].spe) * 0.2))]
-      } else { BaseList = [String(Math.floor((Number(Base.Base[pokeF].hp) + Number(Base.Base[pokeM].hp)) * 0.4)), String((Math.floor(Number(Base.Base[pokeF].att) + Number(Base.Base[pokeM].att)) *0.4)), String(Math.floor((Number(Base.Base[pokeF].def) + Number(Base.Base[pokeM].def)) * 0.4)), String(Math.floor((Number(Base.Base[pokeF].spec) + Number(Base.Base[pokeM].spec)) * 0.4)), String(Math.floor((Number(Base.Base[pokeF].spe) + Number(Base.Base[pokeM].spe)) * 0.4))] }
+      } else { BaseList = [String(Math.floor((Number(Base.Base[pokeF].hp) + Number(Base.Base[pokeM].hp)) * 0.4)), String((Math.floor(Number(Base.Base[pokeF].att) + Number(Base.Base[pokeM].att)) * 0.4)), String(Math.floor((Number(Base.Base[pokeF].def) + Number(Base.Base[pokeM].def)) * 0.4)), String(Math.floor((Number(Base.Base[pokeF].spec) + Number(Base.Base[pokeM].spec)) * 0.4)), String(Math.floor((Number(Base.Base[pokeF].spe) + Number(Base.Base[pokeM].spe)) * 0.4))] }
       return BaseList
     } catch {
       return []
     }
   },
-  //宝可梦列表
+
   pokemonlist(a) {
     try {
       let pokemonNow = a.split('.')
@@ -69,6 +72,7 @@ const pokemonCal = {
       return '空精灵球'
     }
   },
+
   pokemonzajiao(a: string, b: string) {
     try {
       let pokemon_a = Number(a.split('.')[0])
@@ -82,7 +86,7 @@ const pokemonCal = {
       return 0
     }
   },
-  //随机数
+
   mathRandomInt(a: number, b: number) {
     if (a > b) {
       var c = a;
@@ -91,7 +95,7 @@ const pokemonCal = {
     }
     return Math.floor(Math.random() * (b - a + 1) + a);
   },
-  //等级计算
+
   expCal(a: number, b: number) {
     let lv = a
     let exp = b
@@ -105,6 +109,7 @@ const pokemonCal = {
     }
     return [lv, exp]
   },
+
   pokemomPic(a: string, b: boolean) {
     try {
       let pokemonNow = a.split('.')
@@ -120,7 +125,8 @@ const pokemonCal = {
     } catch {
       return `出错啦`
     }
-  },  
+  },
+
   pokebattle(a, b) {
     try {
       let log = []
@@ -159,12 +165,14 @@ const pokemonCal = {
       return `战斗出现意外了`
     }
   },
+
   pokemonskill(a: number) {
     const b = 100 - a
     if (Math.random() < 0.1 * Math.floor(b / 10)) {
       return Math.floor(Math.random() * 41)
     } else return Math.floor(Math.random() * (98 - 41 + 1)) + 41
   },
+
   skillbag(a: string[]) {
     let skill = []
     let skillbag
@@ -178,12 +186,14 @@ const pokemonCal = {
     }
     return skillbag = skill.join('')
   },
+
   findskillId(a: string) {
     let findone = skillMachine.skill.find((skill) => {
       return skill.skill === a
     })
     return findone.id ? findone.id : 0
   },
+
   skillinfo(a: string[]) {
     let skill = []
     for (let i = 0; i < a.length; i++) {
