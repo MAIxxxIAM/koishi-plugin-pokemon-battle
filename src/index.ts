@@ -124,27 +124,27 @@ declare module 'koishi' {
 }
 
 export interface Pokebattle {
-  id: String
-  name: String
-  date: Number
-  captureTimes: Number
-  battleTimes: Number
-  battleToTrainer: Number
-  level: Number
-  exp: Number
-  monster_1: String
-  battlename: String
+  id: string
+  name: string
+  date: number
+  captureTimes: number
+  battleTimes: number
+  battleToTrainer: number
+  level: number
+  exp: number
+  monster_1: string
+  battlename: string
   AllMonster: string[]
   ultramonster: string[]
   base: string[]
   power: string[]
-  skill: Number
-  coin: Number
-  gold: Number
-  changeName: Number
+  skill: number
+  coin: number
+  gold: number
+  changeName: number
   skillbag: string[]
   trainer: string[]
-  trainerNum: Number
+  trainerNum: number
   trainerName: string[]
   battlecd: Date
   relex: Date
@@ -268,7 +268,6 @@ export async function apply(ctx, conf: Config) {
 
 
   const banID = ['150.150', '151.151', '144.144', '145.145', '146.146']
-
 
   ctx.command('宝可梦').subcommand('解压图包文件', { authority: 4 })
     .action(async ({ session }) => {
