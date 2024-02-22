@@ -1,4 +1,4 @@
-import { Schema, h, $ } from 'koishi'
+import { Schema, h, $, Context } from 'koishi'
 import pokemonCal from './utils/pokemon'
 import { button, catchbutton, findItem, getPic, getRandomName, is12to14, moveToFirst, toUrl, urlbutton } from './utils/mothed'
 import { pathToFileURL } from 'url'
@@ -52,6 +52,7 @@ export interface Config {
   对战图片品质: number
   对战cd: number
   对战次数: number
+  捕捉等待时间: number
   MDid: string
   文字MDid: string
   key1: string
@@ -91,6 +92,7 @@ export const Config = Schema.intersect([
     改名卡定价: Schema.number().default(60000),
     对战cd: Schema.number().default(10).description('单位：秒'),
     对战次数: Schema.number().default(15),
+    捕捉等待时间: Schema.number().default(20000).description('单位：毫秒'),
   }).description('数值设置'),
   Schema.object({
     QQ官方使用MD: Schema.boolean().default(false),
@@ -122,6 +124,8 @@ declare module 'koishi' {
     pokebattle: Pokebattle
   }
 }
+
+
 
 export interface Pokebattle {
   id: string
@@ -271,13 +275,32 @@ export async function apply(ctx, conf: Config) {
 
   ctx.command('宝可梦').subcommand('解压图包文件', { authority: 4 })
     .action(async ({ session }) => {
-      exec('tar -xvf ./downloads/bucket1-mnlaakixr8b0v4yngpq865qr144y63jx/image.tar', async (error, stdout, stderr) => {
+      const system = os.platform()
+      let cmd:string  = ''
+      let cp:string = 'copy'
+      exec(`mkdir koishi启动不了将里面的备份取出覆盖`, (error) => {
         if (error) {
-          logger.error(`执行的错误: ${error}`)
+          console.error(`创建目录失败: ${error}`);
+          return;
+        }})
+      if(system!=='win32'){
+        cmd = 'sudo '
+        cp = 'cp'
+
+    }
+
+      console.log(cmd)
+      exec(`${cp} koishi.yml 如果koishi启动不了将名字改为koishi.yml覆盖`, (error) => {
+        if (error) {
+          console.error(`复制文件失败: ${error}`);
+          return;
+        }
+        console.log(`文件已成功复制`);
+      });
+      exec(cmd+'tar -xvf ./downloads/bucket1-mnlaakixr8b0v4yngpq865qr144y63jx/image.tar', async (error, stdout, stderr) => {
+        if (error) {
           return
         }
-        logger.info(`stdout: ${stdout}`)
-        logger.error(`stderr: ${stderr}`)
         await session.send(`解压已完成`)
       })
     })
@@ -542,10 +565,12 @@ export async function apply(ctx, conf: Config) {
       } else {
         let img: string
         let firstMonster_: string
+        let firstMonster: string
         do {
           firstMonster_ = pokemonCal.mathRandomInt(1, 151).toString()
-        } while (banID.includes(firstMonster_))
-        let firstMonster = firstMonster_ + '.' + firstMonster_
+        
+        firstMonster = firstMonster_ + '.' + firstMonster_
+      } while (banID.includes(firstMonster))
         await ctx.database.create('pokebattle', {
           id: session.userId,
           name: session.username.length < 6 ? session.username : session.username.slice(0, 4),
@@ -771,9 +796,9 @@ export async function apply(ctx, conf: Config) {
 ${(h('at', { id: (session.userId) }))}
   `)
           }
-          const chooseMonster = await session.prompt()
+          const chooseMonster = await session.prompt(config.捕捉等待时间)
           let poke
-          let reply
+          let reply: string
           await ctx.database.set('pokebattle', { id: session.userId }, {//扣除精灵球
             captureTimes: { $subtract: [{ $: 'captureTimes' }, 1] },
           })
@@ -1670,7 +1695,6 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
             .where(row => $.ne(row.power, []))
             .execute()
           let levelCount = Number(userArr[0].level)
-          let count: number = 0
           if (randomID.length == 0) {
             do {
               randomID = await ctx.database
@@ -1686,10 +1710,6 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
                 levelCount = levelCount - 1
               } else {
                 levelCount = levelCount + 1
-              }
-              count++
-              if (count > 100) {
-                return (`你已经找不到合适的对手了`)
               }
             } while (randomID.length == 0)
           }
@@ -1839,6 +1859,7 @@ ${jli}`
       if (!count) {
         count = 1
       }
+      count=Math.floor(count)
       if (userArr.length == 0) return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
       if (userArr[0].coin < 1) { return (`你的代币不足，要积极参与对战哦~`) }
       await ctx.database.set('pokebattle', { id: session.userId }, {
@@ -2037,6 +2058,7 @@ ${skilllist.join('\n')}
       const { platform } = session
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
       if (!num) num = 1
+      num=Math.floor(num)
       if (num < 1) return `宝可梦的世界不支持赊账`
       let reply = ''
       if (!item) {
