@@ -2,8 +2,6 @@ import { expToLv, skillMachine, pokemonBase } from './data'
 
 import {pokemonUrl} from '../index';
 
-import { pathToFileURL } from 'url'
-import { resolve } from 'path'
 import { h } from "koishi"
 
 const exptolv = expToLv

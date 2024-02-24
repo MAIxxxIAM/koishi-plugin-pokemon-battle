@@ -12,7 +12,7 @@ import * as lapTwo from './lap/index'
 
 import { qu, an, imglk, expToLv, expBase, skillMachine } from './utils/data'
 
-export const pokemonUrl='http://panl.maituku.cn:5020/i'
+export const pokemonUrl='https://pokeimg.maimai.icu/i'
 
 
 
@@ -47,6 +47,7 @@ export interface Config {
   放生指令别名: string
   签到获得个数: number
   战斗详情是否渲染图片: boolean
+  是否开启友链: boolean
   精灵球定价: number
   训练师定价: number
   扭蛋币定价: number
@@ -80,6 +81,7 @@ export const Config = Schema.intersect([
     查看信息指令别名: Schema.string().default('查看信息'),
     放生指令别名: Schema.string().default('放生'),
     指令使用日志: Schema.boolean().default(false).description('是否输出指令使用日志'),
+    是否开启友链: Schema.boolean().default(false).description('是否开启友链'),
     战斗详情是否渲染图片: Schema.boolean().default(false).description('渲染图片需要加载puppeteer服务'),
     canvas图片品质: Schema.number().role('slider')
       .min(0).max(1).step(0.1).default(1),
@@ -189,16 +191,6 @@ export async function apply(ctx, conf: Config) {
     logger.info('当前使用的是canvas插件提供canvas服务')
   }
 
-  if (!fs.existsSync('./image')) {
-    const imageTask = ctx.downloads.nereid('pokemonimage', [
-      'npm://pokemon-picture',
-      'npm://pokemon-picture?registry=https://registry.npmmirror.com', ,
-    ], 'bucket1')
-    imageTask.promise.then((path) => {
-      logger.info('下载图包完成')
-      logger.info('图包目录：' + resolve(path) + '可以通过指令【解压图包文件】\n如果不想通过指令解压图包，可以到日志提示的目录下\n手动解压到koishi根目录（即让image文件夹与downloads文件夹同级）')
-    })
-  }
   if (!fs.existsSync('./zpix.ttf')) {
     const fontTask = ctx.downloads.nereid('zpixfont', [
       'npm://pix-ziti',
@@ -295,8 +287,6 @@ export async function apply(ctx, conf: Config) {
         cp = 'cp'
 
     }
-
-      console.log(cmd)
       exec(`${cp} koishi.yml 如果koishi启动不了将名字改为koishi.yml覆盖`, (error) => {
         if (error) {
           console.error(`复制文件失败: ${error}`);
@@ -314,6 +304,7 @@ export async function apply(ctx, conf: Config) {
 
 
   ctx.command("宝可梦", '宝可梦玩法帮助').action(async ({ session }) => {
+
     const { platform } = session
     const imgurl = resolve(__dirname, `./assets/img/components/help.jpg`)
     if (platform == 'qq' && config.QQ官方使用MD) {
@@ -369,9 +360,7 @@ export async function apply(ctx, conf: Config) {
                     button(2, "宝可问答", "/宝可问答", session.userId, "12"),
                   ]
                 },
-                {
-                  'buttons':[button(2,"友情链接","/friendlink",session.userId,'12')]
-                }
+                config.是否开启友链?{"buttons":[button(2, "🔗友情链接，里面有好van的哦~", "/friendlink", session.userId, "13")]}:null,
               ]
             },
           },
@@ -560,9 +549,7 @@ export async function apply(ctx, conf: Config) {
                           button(2, "宝可问答", "/宝可问答", session.userId, "12"),
                         ]
                       },
-                      {
-                        'buttons':[button(2,"友情链接","/friendlink",session.userId,'12')]
-                      }
+                      config.是否开启友链?{"buttons":[button(2, "🔗友情链接，里面有好van的哦~", "/friendlink", session.userId, "13")]}:null,
                     ]
                   },
                 },
@@ -673,9 +660,7 @@ export async function apply(ctx, conf: Config) {
                         button(2, "宝可问答", "/宝可问答", session.userId, "12"),
                       ]
                     },
-                    {
-                      'buttons':[button(2,"友情链接","/friendlink",session.userId,'12')]
-                    }
+                    config.是否开启友链?{"buttons":[button(2, "🔗友情链接，里面有好van的哦~", "/friendlink", session.userId, "13")]}:null,
                   ]
                 },
               },
@@ -1608,7 +1593,6 @@ ${(h('at', { id: (session.userId) }))}
       const fath = userArr[0].monster_1.split('.')[0] + '.' + userArr[0].monster_1.split('.')[0]
       const math = userArr[0].monster_1.split('.')[1] + '.' + userArr[0].monster_1.split('.')[1]
       let toDo = ''
-      console.log(`${pokemonUrl}/fusion/${img.split('.')[0]}/${img}.png`)
       if (userArr[0].base[0]) {
         toDo = `\r能力值：\r生命：${pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)[0]}\r攻击：${pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)[1]}\r防御：${pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)[2]}\r特殊：${pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)[3]}\r速度：${pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)[4]}`
       }
@@ -1647,9 +1631,6 @@ ${(h('at', { id: (session.userId) }))}
                 "rows": [
                   { "buttons": [button(0, "♂ 杂交宝可梦", "/杂交宝可梦", session.userId, "1"), button(0, "📷 捕捉宝可梦", "/捕捉宝可梦", session.userId, "2")] },
                   { "buttons": [button(0, "💳 查看信息", "/查看信息", session.userId, "3"), button(0, "⚔️ 对战", "/对战", session.userId, "4")] },
-                  {
-                    'buttons':[button(2,"友情链接","/friendlink",session.userId,'12')]
-                  }
                 ]
               },
             },

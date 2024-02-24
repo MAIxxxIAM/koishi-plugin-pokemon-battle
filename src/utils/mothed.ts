@@ -1,5 +1,5 @@
 import { resolve } from 'path'
-import { Pokebattle,config,logger,shop,testcanvas } from '..'
+import { Pokebattle,config,logger,pokemonUrl,shop,testcanvas } from '..'
 
 export function is12to14() {
   const now = new Date()
@@ -15,8 +15,8 @@ export async function getPic(ctx, log, user, tar) {
     if (user.power[4] > tar.power[4]) { att = user; def = tar } else { att = tar; def = user }
     const attPerson = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `../assets/img/trainer/${att.trainer[0]}.png`)}`)
     const defPerson = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `../assets/img/trainer/${def.trainer[0]}.png`)}`)
-    const attPokemon = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${att.monster_1}.png`)}`)
-    const defPokemon = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${def.monster_1}.png`)}`)
+    const attPokemon = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${att.monster_1.split('.')[0]}/${att.monster_1}.png`)
+    const defPokemon = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${def.monster_1.split('.')[0]}/${def.monster_1}.png`)
     const backimage = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `../assets/img/components/battle.png`)}`)
     let array = log.split('\n')
     let attCount: number
@@ -73,6 +73,10 @@ export function moveToFirst(array: any[], element: any) {
   return array
 }
 export async function toUrl(ctx, img) {
+  if(ctx.get('server.temp')?.upload){
+    const url = await ctx.get('server.temp').upload(img)
+    return url.replace(/_/g, "%5F")
+  }
   const { url } = await ctx.get('server.temp').create(img)
   return url
 }
