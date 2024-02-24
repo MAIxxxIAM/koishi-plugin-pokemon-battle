@@ -1451,9 +1451,7 @@ ${(h('at', { id: (session.userId) }))}`
                         button(2, "宝可问答", "/宝可问答", session.userId, "12"),
                       ]
                     },
-                    {
-                      'buttons':[button(2,"友情链接","/friendlink",session.userId,'12')]
-                    }
+                    config.是否开启友链?{"buttons":[button(2, "🔗友情链接，里面有好van的哦~", "/friendlink", session.userId, "13")]}:null,
                   ]
                 },
               },
