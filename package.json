@@ -15,7 +15,7 @@
     "plugin"
   ],
   "peerDependencies": {
-    "koishi": "^4.16.8",
+    "koishi": "^4.17.1",
     "koishi-plugin-downloads": "^0.1.3"
   },
   "koishi": {

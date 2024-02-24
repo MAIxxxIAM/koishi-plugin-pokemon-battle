@@ -1,5 +1,7 @@
 import { expToLv, skillMachine, pokemonBase } from './data'
 
+import {pokemonUrl} from '../index';
+
 import { pathToFileURL } from 'url'
 import { resolve } from 'path'
 import { h } from "koishi"
@@ -116,8 +118,10 @@ const pokemonCal = {
       let pokemon_a = Number(pokemonNow[0])
       let pokemon_b = Number(pokemonNow[1])
 
-      if (b) { return h.image(pathToFileURL(resolve('./image', pokemon_a + '.' + pokemon_b + '.png')).href) } else {
-        return h.image(pathToFileURL(resolve('./image', pokemon_a + '.png')).href)
+      if (b) { 
+        console.log(`${pokemonUrl}/fusion/${pokemon_a}/${pokemon_a}.${pokemon_b}.png`)
+        return h.image(`${pokemonUrl}/fusion/${pokemon_a}/${pokemon_a}.${pokemon_b}.png`) } else {
+        return h.image(`${pokemonUrl}/fusion/${pokemon_a}/${pokemon_a}.png`)
       }
 
 
