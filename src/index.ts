@@ -8,8 +8,11 @@ import * as path from 'path'
 import os from 'os'
 import pidusage from 'pidusage'
 import { exec } from 'child_process'
+import * as lapTwo from './lap/index'
 
 import { qu, an, imglk, expToLv, expBase, skillMachine } from './utils/data'
+
+export const pokemonUrl='http://panl.maituku.cn:5020/i'
 
 
 
@@ -161,6 +164,8 @@ export let config: Config
 
 export async function apply(ctx, conf: Config) {
 
+
+
   config = conf
 
   if (config.指令使用日志) {
@@ -273,6 +278,8 @@ export async function apply(ctx, conf: Config) {
 
   const banID = ['150.150', '151.151', '144.144', '145.145', '146.146']
 
+  ctx.plugin(lapTwo)
+
   ctx.command('宝可梦').subcommand('解压图包文件', { authority: 4 })
     .action(async ({ session }) => {
       const system = os.platform()
@@ -362,6 +369,9 @@ export async function apply(ctx, conf: Config) {
                     button(2, "宝可问答", "/宝可问答", session.userId, "12"),
                   ]
                 },
+                {
+                  'buttons':[button(2,"友情链接","/friendlink",session.userId,'12')]
+                }
               ]
             },
           },
@@ -446,7 +456,7 @@ export async function apply(ctx, conf: Config) {
           for (let i = 0; i < 5; i++) {
             ultramonsterimg[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./assets/img/basepokemon/${banID[i].split('.')[0]}.png`)}`)
           }
-          if (userArr[0].monster_1 !== '0') pokemonimg = await ctx.canvas.loadImage(`${testcanvas}${resolve('./image/' + userArr[0].monster_1 + '.png')}`)
+          if (userArr[0].monster_1 !== '0') pokemonimg = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${userArr[0].monster_1.split('.')[0]}/${userArr[0].monster_1}.png`)
           let trainers = '0'
           if (userArr[0].trainer[0] !== '0') { trainers = userArr[0].trainer[0] }
           let trainerimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/trainer/' + trainers + '.png')}`)
@@ -550,6 +560,9 @@ export async function apply(ctx, conf: Config) {
                           button(2, "宝可问答", "/宝可问答", session.userId, "12"),
                         ]
                       },
+                      {
+                        'buttons':[button(2,"友情链接","/friendlink",session.userId,'12')]
+                      }
                     ]
                   },
                 },
@@ -660,6 +673,9 @@ export async function apply(ctx, conf: Config) {
                         button(2, "宝可问答", "/宝可问答", session.userId, "12"),
                       ]
                     },
+                    {
+                      'buttons':[button(2,"友情链接","/friendlink",session.userId,'12')]
+                    }
                   ]
                 },
               },
@@ -691,7 +707,7 @@ export async function apply(ctx, conf: Config) {
         if (userArr[0].captureTimes > 0) {
 
           for (let i = 0; i < 3; i++) {
-            grassMonster[i] = pokemonCal.mathRandomInt(1, 151)
+            grassMonster[i] = pokemonCal.mathRandomInt(1, userArr[0].lapTwo?251:151)
             pokeM[i] = grassMonster[i] + '.' + grassMonster[i]
             for (let j = 0; j < pokemonCal.pokemonlist(pokeM[i]).length; j++) {
               black[i] = black[i] + ('⬛')
@@ -1164,10 +1180,10 @@ ${(h('at', { id: (session.userId) }))}
             if (userArr[0].monster_1 != '0') {
               //图片服务
               let img_fuse = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components/fuse.png')}`)
-              let img_F = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${pokeM.split('.')[0]}.png`)}`)
-              let img_M = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${pokeW.split('.')[0]}.png`)}`)
-              let img_S = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${dan[1]}.png`)}`)
-              let img_C = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${userArr[0].monster_1}.png`)}`)
+              let img_F = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${pokeM.split('.')[0]}/${pokeM.split('.')[0]}.png`)
+              let img_M = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${pokeW.split('.')[0]}/${pokeW.split('.')[0]}.png`)
+              let img_S = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${dan[1].split('.')[0]}/${dan[1]}.png`)
+              let img_C = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${userArr[0].monster_1.split('.')[0]}/${userArr[0].monster_1}.png`)
               let img_zj = await ctx.canvas.render(512, 768, async ctx => {
                 ctx.drawImage(img_fuse, 0, 0, 512, 768)
                 ctx.drawImage(img_F, 16, 78, 112, 112)
@@ -1353,7 +1369,7 @@ ${(h('at', { id: (session.userId) }))}`
         for (let i = 0; i < 5; i++) {
           ultramonsterimg[i] = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./assets/img/basepokemon/${banID[i].split('.')[0]}.png`)}`)
         }
-        if (userArr[0].monster_1 !== '0') pokemonimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(`./image/${userArr[0].monster_1}.png`)}`)
+        if (userArr[0].monster_1 !== '0') pokemonimg = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${userArr[0].monster_1.split('.')[0]}/${userArr[0].monster_1}.png`)
         let trainers = '0'
         if (userArr[0].trainer[0] !== '0') { trainers = userArr[0].trainer[0] }
         let trainerimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./assets/img/trainer/${trainers}.png`)}`)
@@ -1449,6 +1465,9 @@ ${(h('at', { id: (session.userId) }))}`
                         urlbutton(2, "📎邀请BOT", config.bot邀请链接, session.userId, "11"),
                         button(2, "宝可问答", "/宝可问答", session.userId, "12"),
                       ]
+                    },
+                    {
+                      'buttons':[button(2,"友情链接","/friendlink",session.userId,'12')]
                     }
                   ]
                 },
@@ -1589,6 +1608,7 @@ ${(h('at', { id: (session.userId) }))}
       const fath = userArr[0].monster_1.split('.')[0] + '.' + userArr[0].monster_1.split('.')[0]
       const math = userArr[0].monster_1.split('.')[1] + '.' + userArr[0].monster_1.split('.')[1]
       let toDo = ''
+      console.log(`${pokemonUrl}/fusion/${img.split('.')[0]}/${img}.png`)
       if (userArr[0].base[0]) {
         toDo = `\r能力值：\r生命：${pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)[0]}\r攻击：${pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)[1]}\r防御：${pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)[2]}\r特殊：${pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)[3]}\r速度：${pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), userArr[0].level)[4]}`
       }
@@ -1610,7 +1630,7 @@ ${(h('at', { id: (session.userId) }))}
                 },
                 {
                   key: config.key3,
-                  values: [await toUrl(ctx, `file://${resolve(`./image/${img}.png`)}`)]
+                  values: [`${pokemonUrl}/fusion/${img.split('.')[0]}/${img}.png`]
                 },
                 {
                   key: config.key4,
@@ -1627,6 +1647,9 @@ ${(h('at', { id: (session.userId) }))}
                 "rows": [
                   { "buttons": [button(0, "♂ 杂交宝可梦", "/杂交宝可梦", session.userId, "1"), button(0, "📷 捕捉宝可梦", "/捕捉宝可梦", session.userId, "2")] },
                   { "buttons": [button(0, "💳 查看信息", "/查看信息", session.userId, "3"), button(0, "⚔️ 对战", "/对战", session.userId, "4")] },
+                  {
+                    'buttons':[button(2,"友情链接","/friendlink",session.userId,'12')]
+                  }
                 ]
               },
             },
