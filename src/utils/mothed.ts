@@ -7,7 +7,7 @@ export function is12to14() {
   if (hours >= 24) {
     hours -= 24
   }
-  return hours >= 12 && hours <= 14
+  return (hours >= 12 && hours <= 13)||(hours >= 19 && hours <= 20)
 }
 export async function getPic(ctx, log, user, tar) {
   try {

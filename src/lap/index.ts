@@ -1,7 +1,7 @@
 import { Context, Schema } from 'koishi'
 
 import {Pokebattle,pokemonUrl,config} from '../index';
-import { button } from '../utils/mothed';
+import { button, toUrl } from '../utils/mothed';
 import pokemonCal from '../utils/pokemon';
 
 export const name = 'lapTwo'
@@ -69,7 +69,7 @@ export function apply(ctx: Context) {
         msg_id: session.messageId,
         timestamp: session.timestamp,
       })}catch(e){
-        return session.send(`请勿重复点击`)
+        return `请勿重复点击`
       }
     }else{
       await session.send(`\u200b
@@ -88,16 +88,81 @@ switch(inTwo){
     await ctx.database.set('pokebattle',userId,{
       lapTwo:true,
       level:5,
+      exp:0,
       base:pokemonCal.pokeBase(user.monster_1),
       power:pokemonCal.power(user.base,5),
     })
-    return session.send(`你成功进入了二周目`)
+    return `你成功进入了二周目`
   case 'N'||'n':
-    return session.send(`你取消了操作`)
+    return `你取消了操作`
   default:
-    return session.send(`输入错误`)
+    return `输入错误`
 }
 
+  })
+
+  ctx.command('宝可梦').subcommand('ultra', '传说中的宝可梦收集值')
+  .action(async ({ session }) => {
+    const { userId } = session
+    const userArr=await ctx.database.get('pokebattle',userId)
+    const user:Pokebattle=userArr[0]
+    const ultra=user?.ultra
+    let str:string[]=[]
+    let mdStr:string[]=[]
+    for(let poke in ultra){
+      if(ultra[poke]==null) continue
+      const img=await toUrl(ctx,`${pokemonUrl}/sr/${poke.split('.')[0]}.png`)
+      str.push(`\u200b
+${pokemonCal.pokemonlist(poke)}的收集度是${ultra[poke]}0% ${'🟩'.repeat(Math.floor(ultra[poke]/2))+'🟨'.repeat(ultra[poke]%2)+ '⬜⬜⬜⬜⬜'.substring(Math.round(ultra[poke]/2))}`)
+      mdStr.push(`${pokemonCal.pokemonlist(poke)} : ${ultra[poke]}0%  ${'🟩'.repeat(Math.floor(ultra[poke]/2))+'🟨'.repeat(ultra[poke]%2)+ '⬜⬜⬜⬜⬜'.substring(Math.round(ultra[poke]/2))}`)
+    }
+    if(!ultra) return `你还没有进入二周目`
+    if(mdStr.length==0) return `你还没有收集到传说中的宝可梦`
+
+    try{
+      // const keys=[config.key6,config.key7,config.key8,config.key9,config.key10]
+      // const params=keys.map((key,index)=>{
+      //   if (mdStr[index] !== undefined) {
+      //     return { key: key, values: [mdStr[index]] };
+      //   }
+      // })
+      // .filter(item => item !== undefined);
+      // console.log(params)
+      await session.bot.internal.sendMessage(session.channelId, {
+        content: "111",
+        msg_type: 2,
+        markdown: {
+          custom_template_id: config.文字MDid,
+          params: [
+            {
+              key: config.key4,
+              values: [`\r#\t<@${userId}>当前的收集值`]
+            },
+            // {
+            //   key: config.key5,
+            //   values: ['![img#20 #20](']
+            // },
+            {
+              key: config.key6,
+              values: [mdStr.join('\r')]
+            },
+          ]
+          // .concat(params)
+        },
+        keyboard: {
+          content: {
+            "rows": [
+              { "buttons": [button(2, "📷 捕捉", `/捕捉宝可梦`, userId, "1"), button(2, "♂ 杂交", "/杂交宝可梦", userId, "2")] },
+            ]
+          },
+        },
+        msg_id: session.messageId,
+        timestamp: session.timestamp,
+      })
+    }catch(e){
+      
+      return str.join('\n')
+    }
   })
   
 }

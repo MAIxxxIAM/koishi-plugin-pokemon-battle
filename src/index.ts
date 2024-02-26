@@ -12,7 +12,7 @@ import * as lapTwo from './lap/index'
 
 import { qu, an, imglk, expToLv, expBase, skillMachine } from './utils/data'
 
-export const pokemonUrl = 'https://pokeimg.maimai.icu/i'
+export const pokemonUrl = 'http://212.64.28.102:5020/i'
 
 
 
@@ -279,7 +279,7 @@ export async function apply(ctx, conf: Config) {
      }
    })
 
-  const banID = ['150.150', '151.151', '144.144', '145.145', '146.146']
+  const banID = ['150.150', '151.151', '144.144', '145.145', '146.146','249.249','250.250','251.251','243.243','244.244','245.245']
 
   ctx.plugin(lapTwo)
 
@@ -316,8 +316,10 @@ export async function apply(ctx, conf: Config) {
 
 
   ctx.command("宝可梦", '宝可梦玩法帮助').action(async ({ session }) => {
+    
 
-    const { platform } = session
+    const { platform ,userId} = session
+    const userArr = await ctx.database.get('pokebattle', { id: userId })
     const imgurl = resolve(__dirname, `./assets/img/components/help.jpg`)
     if (platform == 'qq' && config.QQ官方使用MD) {
       try {
@@ -372,7 +374,7 @@ export async function apply(ctx, conf: Config) {
                     button(2, "宝可问答", "/宝可问答", session.userId, "12"),
                   ]
                 },
-                config.是否开启友链 ? { "buttons": [button(2, "🔗友情链接", "/friendlink", session.userId, "13"),button(2, "进入二周目", "/laptwo", session.userId, "14")] } :{"buttons": [button(2, "进入二周目", "/laptwo", session.userId, "14")]},
+                config.是否开启友链 ? { "buttons": [button(2, "🔗友情链接", "/friendlink", session.userId, "13"),button(2, userArr[0]?.lapTwo?"收集进度":"进入二周目", userArr[0]?.lapTwo?"/ultra":"/laptwo", session.userId, "14")] } :{"buttons": [button(2, userArr[0]?.lapTwo?"收集进度":"进入二周目", userArr[0]?.lapTwo?"/ultra":"/laptwo", session.userId, "14")]},
               ]
             },
           },
@@ -555,7 +557,7 @@ export async function apply(ctx, conf: Config) {
                           button(2, "宝可问答", "/宝可问答", session.userId, "12"),
                         ]
                       },
-                      config.是否开启友链 ? { "buttons": [button(2, "🔗友情链接", "/friendlink", session.userId, "13"),button(2, "进入二周目", "/laptwo", session.userId, "14")] } :{"buttons": [button(2, "进入二周目", "/laptwo", session.userId, "14")]},
+                      config.是否开启友链 ? { "buttons": [button(2, "🔗友情链接", "/friendlink", session.userId, "13"),button(2, userArr[0]?.lapTwo?"收集进度":"进入二周目", userArr[0]?.lapTwo?"/ultra":"/laptwo", session.userId, "14")] } :{"buttons": [button(2, userArr[0]?.lapTwo?"收集进度":"进入二周目", userArr[0]?.lapTwo?"/ultra":"/laptwo", session.userId, "14")]},
                     ]
                   },
                 },
@@ -665,7 +667,7 @@ export async function apply(ctx, conf: Config) {
                         button(2, "宝可问答", "/宝可问答", session.userId, "12"),
                       ]
                     },
-                    config.是否开启友链 ? { "buttons": [button(2, "🔗友情链接", "/friendlink", session.userId, "13"),button(2, "进入二周目", "/laptwo", session.userId, "14")] } :{"buttons": [button(2, "进入二周目", "/laptwo", session.userId, "14")]},
+                    config.是否开启友链 ? { "buttons": [button(2, "🔗友情链接", "/friendlink", session.userId, "13"),button(2, userArr[0]?.lapTwo?"收集进度":"进入二周目", userArr[0]?.lapTwo?"/ultra":"/laptwo", session.userId, "14")] } :{"buttons": [button(2, userArr[0]?.lapTwo?"收集进度":"进入二周目", userArr[0]?.lapTwo?"/ultra":"/laptwo", session.userId, "14")]},
                   ]
                 },
               },
@@ -698,6 +700,9 @@ export async function apply(ctx, conf: Config) {
 
           for (let i = 0; i < 3; i++) {
             grassMonster[i] = pokemonCal.mathRandomInt(1, userArr[0].lapTwo ? 251 : 151)
+            while(banID.includes(`${grassMonster[i]}.${grassMonster[i]}`)&&Math.random()>(100-userArr[0].level)/100){
+              grassMonster[i] = pokemonCal.mathRandomInt(1, userArr[0].lapTwo ? 251 : 151)
+            }
             pokeM[i] = grassMonster[i] + '.' + grassMonster[i]
             for (let j = 0; j < pokemonCal.pokemonlist(pokeM[i]).length; j++) {
               black[i] = black[i] + ('⬛')
@@ -705,10 +710,7 @@ export async function apply(ctx, conf: Config) {
             }
           }
 
-          //测试
-          pokeM[0]='151.151'
-          grassMonster[0]='151'
-          //创建图片
+
           let poke_img = []
           let bg_img = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'catchBG.png')}`)
           poke_img[0] = await ctx.canvas.loadImage(`${pokemonUrl}/sr/${grassMonster[0]}.png`)
@@ -860,6 +862,9 @@ ${(h('at', { id: (session.userId) }))}
             }
           }else if (banID.includes(poke)&&userArr[0].lapTwo){
             if (userArr[0].ultra?.[poke]<9||!userArr[0].ultra?.[poke]){
+              if (userArr[0]?.ultra[poke] === undefined) {
+                userArr[0].ultra[poke] = 0
+              }
               userArr[0].ultra[poke]=userArr[0]?.ultra[poke]+1
               await ctx.database.set('pokebattle', { id: session.userId }, {
                 ultra: userArr[0].ultra,
@@ -1514,7 +1519,7 @@ ${(h('at', { id: (session.userId) }))}`
                         button(2, "宝可问答", "/宝可问答", session.userId, "12"),
                       ]
                     },
-                    config.是否开启友链 ? { "buttons": [button(2, "🔗友情链接", "/friendlink", session.userId, "13"),button(2, "进入二周目", "/laptwo", session.userId, "14")] } :{"buttons": [button(2, "进入二周目", "/laptwo", session.userId, "14")]},
+                    config.是否开启友链 ? { "buttons": [button(2, "🔗友情链接", "/friendlink", session.userId, "13"),button(2, userArr[0]?.lapTwo?"收集进度":"进入二周目", userArr[0]?.lapTwo?"/ultra":"/laptwo", session.userId, "14")] } :{"buttons": [button(2, userArr[0]?.lapTwo?"收集进度":"进入二周目", userArr[0]?.lapTwo?"/ultra":"/laptwo", session.userId, "14")]},
                   ]
                 },
               },
@@ -1609,7 +1614,6 @@ ${(h('at', { id: (session.userId) }))}`
       }
       const choose = await session.prompt(20000)
       let RandomPoke = ''
-      let getBall = 0
       if (!choose) return `${(h('at', { id: (session.userId) }))}你好像还在犹豫，有点舍不得他们`
       if (userArr[0].AllMonster[Number(choose) - 1]) {
         if (userArr[0].AllMonster.length === 1) return `${(h('at', { id: (session.userId) }))}你只剩一只宝可梦了，无法放生`
@@ -2224,11 +2228,12 @@ tips:${tips}`
 ====================
  现在不是答题时间哦
 ====================
- 每天中午12点到下午
- 3点是答题时间
+      答题时间
+  每天中午12-14点
+   晚上19点-21点
 ====================
- 答对问题可以获得
- 体力或者金币
+  答对问题可以获得
+    体力或者金币
 ====================`
       const userArr = await ctx.database.get('pokebattle', { id: userId })
       let reply: string
