@@ -139,12 +139,15 @@ const pokemonCal = {
       let winner
       let loser
       const attack = (att, def) => {
+        const cHit=Number(att[0].base[5])/2/256
+        const hit=Math.random()<cHit?2:1
         const skillCategory=skillMachine.skill[Number(att[0].skill)].category
         const attCategory=skillCategory
         const defCategory=attCategory+1
-        let damage = Math.floor(((2 * att[0].level + 10) / 250 * Number(att[0].power[attCategory]) / (Number(def[0].power[defCategory])) * skillMachine.skill[Number(att[0].skill)].Dam + 2) * (Number(att[0].power[defCategory]) / Number(def[0].power[defCategory] * 2.4) + (Math.random() * (0.75 - 0.65 + 1) + 0.65)))
+        let damage = Math.floor(((2 * att[0].level + 10) / 250 * Number(att[0].power[attCategory]) / (Number(def[0].power[defCategory])) * skillMachine.skill[Number(att[0].skill)].Dam + 2) *hit*(Math.random()+0.85))
         def[0].power[0] = def[0].power[0] - damage
         if (def[0].power[0] <= 0) { def[0].power[0] = 0 } else if (att[0].power[0] <= 0) { att[0].power[0] = 0 }
+        hit==2?log.push(`*${att[0].battlename}击中要害,对${def[0].battlename}造成 ${Math.floor(damage)} 伤害*`):
         log.push(`${att[0].battlename}的 [${skillMachine.skill[Number(att[0].skill)].skill}]，造成 ${Math.floor(damage)} 伤害,${def[0].battlename}剩余${Math.floor(def[0].power[0])}HP`)
       }
       let first, second
