@@ -1,6 +1,6 @@
 import { Schema, h, $, Context } from 'koishi'
 import pokemonCal from './utils/pokemon'
-import { button, catchbutton, findItem, getPic, getRandomName, is12to14, moveToFirst, toUrl, urlbutton } from './utils/mothed'
+import { button, catchbutton, findItem, getPic, getRandomName, is12to14, moveToFirst, toUrl, urlbutton,getType } from './utils/mothed'
 import { pathToFileURL } from 'url'
 import { resolve } from 'path'
 import * as fs from 'fs'
@@ -702,7 +702,7 @@ export async function apply(ctx, conf: Config) {
 
           for (let i = 0; i < 3; i++) {
             grassMonster[i] = pokemonCal.mathRandomInt(1, userArr[0].lapTwo ? 251 : 151)
-            while(banID.includes(`${grassMonster[i]}.${grassMonster[i]}`)&&Math.random()>(100-userArr[0].level)/100){
+            while(banID.includes(`${grassMonster[i]}.${grassMonster[i]}`)&&userArr[0].lapTwo?Math.random()>(100-userArr[0].level)/100:false){
               grassMonster[i] = pokemonCal.mathRandomInt(1, userArr[0].lapTwo ? 251 : 151)
             }
             pokeM[i] = grassMonster[i] + '.' + grassMonster[i]
@@ -1296,6 +1296,10 @@ ${(h('at', { id: (session.userId) }))}
                           key: config.key9,
                           values: [`速度：${Math.sign(Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[5]) - userArr[0].power[5]) >= 0 ? '+' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[5]) - userArr[0].power[5]) : '' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[5]) - userArr[0].power[5])}`]
                         },
+                        {
+                          key: config.key10,
+                          values: [`宝可梦属性：${getType(dan[1]).join(' ')}`]
+                        },
                       ]
                     },
                     keyboard: {
@@ -1316,6 +1320,7 @@ ${(h('at', { id: (session.userId) }))}
                 await session.send(`
 ${img_zj}
 能力变化：
+属性：${getType(dan[1]).join(' ')}
 生命：${Math.sign(Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[0]) - userArr[0].power[0]) >= 0 ? '+' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[0]) - userArr[0].power[0]) : '' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[0]) - userArr[0].power[0])}
 攻击：${Math.sign(Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[1]) - userArr[0].power[1]) >= 0 ? '+' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[1]) - userArr[0].power[1]) : '' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[1]) - userArr[0].power[1])}
 防御：${Math.sign(Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[2]) - userArr[0].power[2]) >= 0 ? '+' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[2]) - userArr[0].power[2]) : '' + (Number(pokemonCal.power(pokemonCal.pokeBase(dan[1]), userArr[0].level)[2]) - userArr[0].power[2])}
@@ -1490,6 +1495,10 @@ ${(h('at', { id: (session.userId) }))}`
                   {
                     key: config.key3,
                     values: [await toUrl(ctx, src)]
+                  },
+                  {
+                    key: config.key4,
+                    values: [`宝可梦属性：${getType(userArr[0].monster_1).join(' ')}`]
                   },
                 ]
               },
@@ -1697,6 +1706,10 @@ ${(h('at', { id: (session.userId) }))}
                 {
                   key: config.key4,
                   values: [`${(toDo)}`]
+                },
+                {
+                  key: config.key5,
+                  values: [`宝可梦属性：${getType(userArr[0].monster_1).join(' ')}`]
                 },
                 {
                   key: config.key10,
@@ -2026,7 +2039,7 @@ ${skilllist.join('\n')}
       try {
         if (!userArr[0].skillbag[2] && !skill) return `你的技能还太少，有什么先用着吧，或者输入你想查询的技能名字 例如：【查询技能 大爆炸】`
         if (!skill) return (pokemonCal.skillinfo(userArr[0].skillbag))
-        return `${skill}的技能信息：\n威力：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].Dam}\n描述：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].descript}`
+        return `${skill}的技能信息：\n威力：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].Dam}\n类型：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].category==1?'物理':"特殊"}\n描述：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].descript}`
       } catch (e) {
         logger.info(e)
         return `输入错误，没有这个技能哦`
@@ -2368,14 +2381,16 @@ ${question}
 
       if (pd) {
         if (battleToTrainer >= 15) {
+          userArr[0].gold += 100 + 50 * userArr[0].ultramonster.length
           await ctx.database.set('pokebattle', { id: userId }, {
-            gold: { $add: [{ $: 'gold' }, 100 + 50 * userArr[0].ultramonster.length] },
+            gold: { $add: [{ $: 'gold' },userArr[0].gold] },
           })
           end = `回答正确\r你获得了${100 + 50 * userArr[0].ultramonster.length}金币${y}`
         }
         else {
+          userArr[0].battleToTrainer += userArr[0].ultramonster.length +1
           await ctx.database.set('pokebattle', { id: userId }, {
-            battleToTrainer: { $add: [{ $: 'battleToTrainer' }, userArr[0].ultramonster.length + 1] },
+            battleToTrainer: { $add: [{ $: 'battleToTrainer' }, userArr[0].battleToTrainer] },
           })
           end = `回答正确\r你获得了${userArr[0].ultramonster.length + 1}体力${y}`
         }

@@ -1,5 +1,7 @@
 import { resolve } from 'path'
 import { Pokebattle,config,logger,pokemonUrl,shop,testcanvas } from '..'
+import { type,battleType } from './data'
+
 
 export function is12to14() {
   const now = new Date()
@@ -80,6 +82,26 @@ export async function toUrl(ctx, img) {
   const { url } = await ctx.get('server.temp').create(img)
   return url
 }
+
+export function typeEffect(a:Pokebattle,b:Pokebattle,skillType:string){
+  const [a1,a2] = getType(a.monster_1)
+  const [b1,b2] = getType(b.monster_1)
+  const effect  = battleType.data[a1][b1]*battleType.data[a1][b2]*battleType.data[a2][b1]*battleType.data[a2][b2]*([a1,a2].includes(skillType)?1.5:1)
+return effect
+
+}
+
+export function getType(a:string){
+  try{const pokemon = a.split('.')
+  const [p_f,p_m] = pokemon
+  const type1 = type[Number(p_f)-1].type.split(':')[0]
+  let type2 = type[Number(p_m)-1].type.split(':')[1]
+  type2==''?type2= type[Number(p_m)-1].type.split(':')[0]:0
+  if (type1==type2){type2=''}
+  return [type1,type2]
+}catch(e){return ['','']}
+}
+
 export function catchbutton(a: string, b: string, c: string, d: string) {
   return {
     "rows": [
