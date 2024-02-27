@@ -705,7 +705,7 @@ export async function apply(ctx, conf: Config) {
             // if(banID.includes(`${grassMonster[i]}.${grassMonster[i]}`)&&userArr[0].lapTwo?Math.random()>(100-userArr[0].level)/100:false){
             //   grassMonster[i] = pokemonCal.mathRandomInt(1, userArr[0].lapTwo ? 251 : 151)
             // }
-            if(banID.includes(`${grassMonster[i]}.${grassMonster[i]}`) && (userArr[0].lapTwo ? Math.random() > (100 - userArr[0].level) / 100 : false)) {
+            while(banID.includes(`${grassMonster[i]}.${grassMonster[i]}`) && (userArr[0].lapTwo ? Math.random() > (100 - userArr[0].level) / 100 : false)) {
               grassMonster[i] = pokemonCal.mathRandomInt(1, userArr[0].lapTwo ? 251 : 151);
           }
             pokeM[i] = grassMonster[i] + '.' + grassMonster[i]
@@ -1869,6 +1869,9 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         let battlelog = battle[0]
         let winner = battle[1]
         let loser = battle[2]
+        if (winner==loser) {
+          return `你们打成了平手，都无法对目标造成伤害`
+        }
         let getgold = pokemonCal.mathRandomInt(500, 1200)
         let loserArr = await ctx.database.get('pokebattle', { id: loser })
         let winnerArr = await ctx.database.get('pokebattle', { id: winner })

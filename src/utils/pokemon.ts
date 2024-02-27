@@ -138,13 +138,20 @@ const pokemonCal = {
       let log = []
       let winner
       let loser
+      let oneforone:number[]=[]
       const attack = (att, def) => {
         const cHit=Number(att[0].base[5])/2/256
         const hit=Math.random()<cHit?2:1
         const skillCategory=skillMachine.skill[Number(att[0].skill)].category
         const attCategory=skillCategory
         const defCategory=attCategory+1
-        let damage = Math.floor(((2 * att[0].level + 10) / 250 * Number(att[0].power[attCategory]) / (Number(def[0].power[defCategory])) * skillMachine.skill[Number(att[0].skill)].Dam + 2) *hit*typeEffect(att[0],def[0],skillMachine.skill[Number(att[0].skill)].type)*(Math.random()+0.85))
+        const Effect =typeEffect(att[0],def[0],skillMachine.skill[Number(att[0].skill)].type)
+        oneforone.push(Effect)
+        if (oneforone.length==2&&oneforone[0]==oneforone[1]&&oneforone[0]==0){
+          log.push(`打成了平手，技能没有效果`)
+          return [log.join('\n'), winner.id, winner.id]
+        } 
+        let damage = Math.floor(((2 * att[0].level + 10) / 250 * Number(att[0].power[attCategory]) / (Number(def[0].power[defCategory])) * skillMachine.skill[Number(att[0].skill)].Dam + 2) *hit*Effect*(Math.random()+0.85))
         def[0].power[0] = def[0].power[0] - damage
         if (def[0].power[0] <= 0) { def[0].power[0] = 0 } else if (att[0].power[0] <= 0) { att[0].power[0] = 0 }
         hit==2?log.push(`*${att[0].battlename}击中要害,对${def[0].battlename}造成 ${Math.floor(damage)} 伤害*`):
