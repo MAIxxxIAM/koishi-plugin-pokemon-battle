@@ -1,6 +1,6 @@
 import { resolve } from 'path'
 import { Pokebattle,config,logger,pokemonUrl,shop,testcanvas } from '..'
-import { type,battleType } from './data'
+import { type,battleType, skillMachine } from './data'
 
 
 export function is12to14() {
@@ -86,7 +86,7 @@ export async function toUrl(ctx, img) {
 export function typeEffect(a:Pokebattle,b:Pokebattle,skillType:string){
   const [a1,a2] = getType(a.monster_1)
   const [b1,b2] = getType(b.monster_1)
-  const effect  = battleType.data[a1][b1]*battleType.data[a1][b2]*battleType.data[a2][b1]*battleType.data[a2][b2]*([a1,a2].includes(skillType)?1.5:1)
+  const effect  = battleType.data[skillType][b1]*battleType.data[skillType][b2]*([a1,a2].includes(skillType)?1.5:1)
 return effect
 
 }

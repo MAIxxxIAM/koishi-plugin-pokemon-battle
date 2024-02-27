@@ -140,7 +140,7 @@ const pokemonCal = {
       let loser
       let oneforone:number[]=[]
       const attack = (att, def) => {
-        const cHit=Number(att[0].base[5])/2/256
+        const cHit=Number(att[0].base[5])/3/256
         const hit=Math.random()<cHit?2:1
         const skillCategory=skillMachine.skill[Number(att[0].skill)].category
         const attCategory=skillCategory
