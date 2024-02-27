@@ -954,6 +954,7 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
                   content: {
                     "rows": [
                       { "buttons": [button(2, `继续捕捉宝可梦`, "/捕捉宝可梦", session.userId, "1")] },
+                      userArr[0].AllMonster.length === 5?{ "buttons": [button(2, `背包已满，放生宝可梦`, "/放生", session.userId, "2")] }:null,
                     ]
                   },
                 },
