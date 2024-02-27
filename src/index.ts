@@ -682,7 +682,6 @@ export async function apply(ctx, conf: Config) {
       }
     })
 
-
   ctx.command('宝可梦').subcommand('捕捉宝可梦', '随机遇到3个宝可梦')
     .alias(config.捕捉指令别名)
     .usage(`/${config.捕捉指令别名}`)
@@ -691,7 +690,10 @@ export async function apply(ctx, conf: Config) {
       const userArr:Array<Pokebattle> = await ctx.database.get('pokebattle', { id: session.userId })
       let usedCoords = []
       if (userArr.length == 0) {
-        return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
+        try{
+          await session.execute(`签到`)
+        }catch(e){return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`}
+        
       } else {
         let pokeM = []
         let grassMonster = []
@@ -1368,7 +1370,9 @@ ${(h('at', { id: (session.userId) }))}`
         }
 
       } else {
-        return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
+        try{
+          await session.execute(`签到`)
+        }catch(e){return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`}
       }
     })
 
@@ -1534,7 +1538,10 @@ ${(h('at', { id: (session.userId) }))}`
 ${(h('at', { id: (session.userId) }))}`
         }
       } else {
-        return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
+        try{
+          await session.execute(`签到`)
+        }catch(e){
+        return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`}
         //不存在数据
       }
     })
@@ -1547,7 +1554,10 @@ ${(h('at', { id: (session.userId) }))}`
       const { platform } = session
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
 
-      if (userArr.length == 0) return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
+      if (userArr.length == 0) {
+        try{
+          await session.execute(`签到`)
+        }catch(e){return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`}}
       //图片服务
       let pokemonimg1: string[] = []
       const bgImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'bag.png')}`)
@@ -1651,7 +1661,10 @@ ${(h('at', { id: (session.userId) }))}
       const { platform } = session
       let tar = session.userId
       const userArr = await ctx.database.get('pokebattle', { id: tar })
-      if (userArr.length == 0) return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
+      if (userArr.length == 0) {
+        try{
+          await session.execute(`签到`)
+        }catch(e){return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`}}
       if (userArr[0].monster_1 == '0') return `你还没有宝可梦，快去【${(config.杂交指令别名)}】吧`
       const img = userArr[0].monster_1
       const fath = userArr[0].monster_1.split('.')[0] + '.' + userArr[0].monster_1.split('.')[0]
@@ -1729,7 +1742,10 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         let userId: string
         let randomUser: { id: string }
         const userArr = await ctx.database.get('pokebattle', { id: session.userId })
-        if (userArr.length == 0) return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
+        if (userArr.length == 0) {
+          try{
+            await session.execute(`签到`)
+          }catch(e){return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`}}
         if (userArr[0].gold < 500) {
           return (`你的金币不足，无法对战`)
         }
@@ -1928,7 +1944,10 @@ ${jli}`
         count = 1
       }
       count = Math.floor(count)
-      if (userArr.length == 0) return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
+      if (userArr.length == 0) {
+        try{
+          await session.execute(`签到`)
+        }catch(e){return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`}}
       if (userArr[0].coin < 1) { return (`你的代币不足，要积极参与对战哦~`) }
       await ctx.database.set('pokebattle', { id: session.userId }, {
         coin: { $subtract: [{ $: 'coin' }, count] },
@@ -1973,7 +1992,10 @@ ${skilllist.join('\n')}
     .usage(`/技能背包`)
     .action(async ({ session }) => {
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
-      if (userArr.length == 0) return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
+      if (userArr.length == 0) {
+        try{
+          await session.execute(`签到`)
+        }catch(e){return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`}}
       return pokemonCal.skillbag(userArr[0].skillbag) ? `${h('at', { id: (session.userId) })}你的技能背包：\n${pokemonCal.skillbag(userArr[0].skillbag)}` : `你还没有技能哦\n签到领取代币到【技能扭蛋机】抽取技能吧`
     })
 
@@ -1983,7 +2005,10 @@ ${skilllist.join('\n')}
     .action(async ({ session }, skill) => {
       if (!skill) return `请输入技能名称 例如：【装备技能 大爆炸】`
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
-      if (userArr.length == 0) return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
+      if (userArr.length == 0) {
+        try{
+          await session.execute(`签到`)
+        }catch(e){return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`}}
       if (!userArr[0].skillbag.includes(String(pokemonCal.findskillId(skill)))) return `${h('at', { id: (session.userId) })}你还没有这个技能哦`
 
       await ctx.database.set('pokebattle', { id: session.userId }, {
@@ -2012,7 +2037,10 @@ ${skilllist.join('\n')}
     .usage(`/更换训练师 <训练师名字>|<空>`)
     .action(async ({ session }, name) => {
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
-      if (userArr.length == 0) return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
+      if (userArr.length == 0) {
+        try{
+          await session.execute(`签到`)
+        }catch(e){return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`}}
       if (userArr[0].trainer.length == 1) return `${h('at', { id: (session.userId) })}你只有一个训练师，无法更换`
       let nameList = `${userArr[0].trainerName.map((item: any, index: number) => `${index + 1}.${item}`).join('\n')}`
       if (!name) {
@@ -2047,7 +2075,10 @@ ${skilllist.join('\n')}
     .action(async ({ session }) => {
       const { platform } = session
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
-      if (userArr.length == 0) return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
+      if (userArr.length == 0) {
+        try{
+          await session.execute(`签到`)
+        }catch(e){return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`}}
       if (userArr[0].trainerNum < 1) return `${h('at', { id: (session.userId) })}你的盲盒不足，无法开启`
       let getTrainer = String(pokemonCal.mathRandomInt(0, 60))
       while (userArr[0].trainer.includes(getTrainer)) {
@@ -2183,7 +2214,10 @@ ${skilllist.join('\n')}
         return `商店物品：\r${reply}输入【/购买 物品名称 数量】来购买物品，数量不写默认为1\r你当前金币：${userArr[0].gold}`
       }
 
-      if (userArr.length == 0) return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
+      if (userArr.length == 0) {
+        try{
+          await session.execute(`签到`)
+        }catch(e){return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`}}
       const matchedItem = findItem(item)
       if (matchedItem.length == 0) return `没有这个物品哦`
       if (userArr[0].gold < matchedItem[0].price * num) return `你的金币不足`
@@ -2237,7 +2271,10 @@ tips:${tips}`
 ====================`
       const userArr = await ctx.database.get('pokebattle', { id: userId })
       let reply: string
-      if (userArr.length == 0) return `${h('at', { id: (userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
+      if (userArr.length == 0) {
+        try{
+          await session.execute(`签到`)
+        }catch(e){return `${h('at', { id: (userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`}}
       if (userArr[0].battleToTrainer >= 15) {
         reply = `现在你的体力是满的，回答问题只会获得金币哦~`
       }
@@ -2416,7 +2453,10 @@ ${end}
         }
         while (!regex.test(name))
       }
-      if (userArr.length == 0) return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`
+      if (userArr.length == 0) {
+        try{
+          await session.execute(`签到`)
+        }catch(e){return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`}}
       await ctx.database.set('pokebattle', { id: session.userId }, {
         name: name,
         changeName: { $subtract: [{ $: 'changeName' }, 1] }

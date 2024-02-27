@@ -32,7 +32,7 @@ export function apply(ctx: Context) {
     const { userId,platform } = session
     const userArr=await ctx.database.get('pokebattle',userId)
     const user:Pokebattle=userArr[0]
-    if(user.lapTwo) return `你已经进入了二周目`
+    if(user?.lapTwo) return `你已经进入了二周目`
     if(user.level<80||user.ultramonster.length<5) return `条件不满足，请升级至80级，并且拥有5只传说中的宝可梦`
     if(platform=='qq'&&config.QQ官方使用MD){
       try{await session.bot.internal.sendMessage(session.channelId, {
