@@ -702,9 +702,12 @@ export async function apply(ctx, conf: Config) {
 
           for (let i = 0; i < 3; i++) {
             grassMonster[i] = pokemonCal.mathRandomInt(1, userArr[0].lapTwo ? 251 : 151)
-            while(banID.includes(`${grassMonster[i]}.${grassMonster[i]}`)&&userArr[0].lapTwo?Math.random()>(100-userArr[0].level)/100:false){
-              grassMonster[i] = pokemonCal.mathRandomInt(1, userArr[0].lapTwo ? 251 : 151)
-            }
+            // if(banID.includes(`${grassMonster[i]}.${grassMonster[i]}`)&&userArr[0].lapTwo?Math.random()>(100-userArr[0].level)/100:false){
+            //   grassMonster[i] = pokemonCal.mathRandomInt(1, userArr[0].lapTwo ? 251 : 151)
+            // }
+            if(banID.includes(`${grassMonster[i]}.${grassMonster[i]}`) && (userArr[0].lapTwo ? Math.random() > (100 - userArr[0].level) / 100 : false)) {
+              grassMonster[i] = pokemonCal.mathRandomInt(1, userArr[0].lapTwo ? 251 : 151);
+          }
             pokeM[i] = grassMonster[i] + '.' + grassMonster[i]
             for (let j = 0; j < pokemonCal.pokemonlist(pokeM[i]).length; j++) {
               black[i] = black[i] + ('⬛')
@@ -1869,7 +1872,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         let getgold = pokemonCal.mathRandomInt(500, 1200)
         let loserArr = await ctx.database.get('pokebattle', { id: loser })
         let winnerArr = await ctx.database.get('pokebattle', { id: winner })
-        let expGet = loserArr[0].level > 99 ? 0 : Math.floor(loserArr[0].level * Number(expBase.exp[(Number(winnerArr[0].monster_1.split('.')[0]) > Number(winnerArr[0].monster_1.split('.')[1]) ? Number(winnerArr[0].monster_1.split('.')[1]) : Number(winnerArr[0].monster_1.split('.')[0])) - 1].expbase) / 7)
+        let expGet = loserArr[0]?.level > 99 ? 0 : Math.floor(loserArr[0].level * Number(expBase.exp[(Number(winnerArr[0].monster_1.split('.')[0]) > Number(winnerArr[0].monster_1.split('.')[1]) ? Number(winnerArr[0].monster_1.split('.')[1]) : Number(winnerArr[0].monster_1.split('.')[0])) - 1].expbase) / 7)
         if (loserArr[0].level >= winnerArr[0].level + 6) {
           expGet = Math.floor(expGet * 0.2)
         }
@@ -2039,7 +2042,7 @@ ${skilllist.join('\n')}
       try {
         if (!userArr[0].skillbag[2] && !skill) return `你的技能还太少，有什么先用着吧，或者输入你想查询的技能名字 例如：【查询技能 大爆炸】`
         if (!skill) return (pokemonCal.skillinfo(userArr[0].skillbag))
-        return `${skill}的技能信息：\n威力：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].Dam}\n类型：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].category==1?'物理':"特殊"}\n描述：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].descript}`
+        return `${skill}的技能信息：\n威力：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].Dam}\n类型：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].category==1?'物理':"特殊"}\n属性：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].type}\n描述：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].descript}`
       } catch (e) {
         logger.info(e)
         return `输入错误，没有这个技能哦`

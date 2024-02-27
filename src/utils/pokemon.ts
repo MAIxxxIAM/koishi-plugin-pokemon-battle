@@ -122,7 +122,6 @@ const pokemonCal = {
       let pokemon_b = Number(pokemonNow[1])
 
       if (b) { 
-        console.log(`${pokemonUrl}/fusion/${pokemon_a}/${pokemon_a}.${pokemon_b}.png`)
         return h.image(`${pokemonUrl}/fusion/${pokemon_a}/${pokemon_a}.${pokemon_b}.png`) } else {
         return h.image(`${pokemonUrl}/fusion/${pokemon_a}/${pokemon_a}.png`)
       }
@@ -215,8 +214,8 @@ const pokemonCal = {
     skill.sort((a, b) => { return Number(b) - Number(a) })
     return `你的技能背包中，最高威力的3个技能是
 ${skillMachine.skill[skill[0]].skill}:${skillMachine.skill[skill[0]].Dam} 类型:${skillMachine.skill[skill[0]].category===1?'物理':'特殊'} 属性:${skillMachine.skill[skill[0]].type}
-${skillMachine.skill[skill[1]].skill}:${skillMachine.skill[skill[1]].Dam} 类型:${skillMachine.skill[skill[0]].category===1?'物理':'特殊'} 属性:${skillMachine.skill[skill[0]].type}
-${skillMachine.skill[skill[2]].skill}:${skillMachine.skill[skill[2]].Dam} 类型:${skillMachine.skill[skill[0]].category===1?'物理':'特殊'} 属性:${skillMachine.skill[skill[0]].type}
+${skillMachine.skill[skill[1]].skill}:${skillMachine.skill[skill[1]].Dam} 类型:${skillMachine.skill[skill[1]].category===1?'物理':'特殊'} 属性:${skillMachine.skill[skill[1]].type}
+${skillMachine.skill[skill[2]].skill}:${skillMachine.skill[skill[2]].Dam} 类型:${skillMachine.skill[skill[2]].category===1?'物理':'特殊'} 属性:${skillMachine.skill[skill[2]].type}
 `
   }
 }
