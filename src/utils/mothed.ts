@@ -96,7 +96,7 @@ export function getType(a:string){
   const [p_f,p_m] = pokemon
   const type1 = type[Number(p_f)-1].type.split(':')[0]
   let type2 = type[Number(p_m)-1].type.split(':')[1]
-  type2==''?type2= type[Number(p_m)-1].type.split(':')[0]:0
+  type2==''?type2= type[Number(p_m)-1].type.split(':')[0]:type2
   if (type1==type2){type2=''}
   return [type1,type2]
 }catch(e){return ['','']}

@@ -705,7 +705,7 @@ export async function apply(ctx, conf: Config) {
             // if(banID.includes(`${grassMonster[i]}.${grassMonster[i]}`)&&userArr[0].lapTwo?Math.random()>(100-userArr[0].level)/100:false){
             //   grassMonster[i] = pokemonCal.mathRandomInt(1, userArr[0].lapTwo ? 251 : 151)
             // }
-            while(banID.includes(`${grassMonster[i]}.${grassMonster[i]}`) && (userArr[0].lapTwo ? Math.random() > (100 - userArr[0].level) / 100 : false)) {
+            if(banID.includes(`${grassMonster[i]}.${grassMonster[i]}`) && (userArr[0].lapTwo ? Math.random() > (100 - userArr[0].level) / 100 : false)) {
               grassMonster[i] = pokemonCal.mathRandomInt(1, userArr[0].lapTwo ? 251 : 151);
           }
             pokeM[i] = grassMonster[i] + '.' + grassMonster[i]
@@ -1869,9 +1869,6 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         let battlelog = battle[0]
         let winner = battle[1]
         let loser = battle[2]
-        if (winner==loser) {
-          return `你们打成了平手，都无法对目标造成伤害`
-        }
         let getgold = pokemonCal.mathRandomInt(500, 1200)
         let loserArr = await ctx.database.get('pokebattle', { id: loser })
         let winnerArr = await ctx.database.get('pokebattle', { id: winner })
@@ -2044,7 +2041,8 @@ ${skilllist.join('\n')}
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
       try {
         if (!userArr[0].skillbag[2] && !skill) return `你的技能还太少，有什么先用着吧，或者输入你想查询的技能名字 例如：【查询技能 大爆炸】`
-        if (!skill) return (pokemonCal.skillinfo(userArr[0].skillbag))
+        if (!skill) return (pokemonCal.skillinfo(userArr[0].skillbag,'',false))
+        if (pokemonCal.findskillId(skill)==0) return pokemonCal.skillinfo(userArr[0].skillbag,skill,true)
         return `${skill}的技能信息：\n威力：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].Dam}\n类型：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].category==1?'物理':"特殊"}\n属性：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].type}\n描述：${skillMachine.skill[Number(pokemonCal.findskillId(skill))].descript}`
       } catch (e) {
         logger.info(e)
@@ -2100,6 +2098,7 @@ ${skilllist.join('\n')}
           await session.execute(`签到`)
         }catch(e){return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球`}}
       if (userArr[0].trainerNum < 1) return `${h('at', { id: (session.userId) })}你的盲盒不足，无法开启`
+      if (userArr[0].trainer.length>59) return `你的训练师已经满了`
       let getTrainer = String(pokemonCal.mathRandomInt(0, 60))
       while (userArr[0].trainer.includes(getTrainer)) {
         getTrainer = String(pokemonCal.mathRandomInt(0, 60))
@@ -2387,16 +2386,15 @@ ${question}
 
       if (pd) {
         if (battleToTrainer >= 15) {
-          userArr[0].gold += 100 + 50 * userArr[0].ultramonster.length
+          
           await ctx.database.set('pokebattle', { id: userId }, {
-            gold: { $add: [{ $: 'gold' },userArr[0].gold] },
+            gold: { $add: [{ $: 'gold' },100 + 50 * userArr[0].ultramonster.length] },
           })
           end = `回答正确\r你获得了${100 + 50 * userArr[0].ultramonster.length}金币${y}`
         }
         else {
-          userArr[0].battleToTrainer += userArr[0].ultramonster.length +1
           await ctx.database.set('pokebattle', { id: userId }, {
-            battleToTrainer: { $add: [{ $: 'battleToTrainer' }, userArr[0].battleToTrainer] },
+            battleToTrainer: { $add: [{ $: 'battleToTrainer' }, userArr[0].ultramonster.length + 1] },
           })
           end = `回答正确\r你获得了${userArr[0].ultramonster.length + 1}体力${y}`
         }
@@ -2421,7 +2419,7 @@ ${question}
               },
               {
                 key: config.key6,
-                values: [`\r\r>\t当前体力：${userArr[0].battleToTrainer}\r当前金币：${userArr[0].gold}`]
+                values: [`\r\r>\t当前体力：${userArr[0].ultramonster.length + 1+userArr[0].battleToTrainer}\r当前金币：${userArr[0].gold+100 + 50 * userArr[0].ultramonster.length}`]
               },
             ]
           },
@@ -2442,8 +2440,8 @@ ${question}
 ====================
 ${end}
 ====================
-当前体力：${userArr[0].battleToTrainer}
-当前金币：${userArr[0].gold}`
+当前体力：${userArr[0].ultramonster.length + 1+userArr[0].battleToTrainer}
+当前金币：${userArr[0].gold+100 + 50 * userArr[0].ultramonster.length}`
     }
     )
 

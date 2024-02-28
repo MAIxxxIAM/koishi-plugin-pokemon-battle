@@ -3,6 +3,7 @@
         {
             "id": 0,
             "skill": "咬",
+            "type": "一般",
             "category":1,
             "Dam": 10,
             "hit": 100,

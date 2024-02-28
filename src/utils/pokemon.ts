@@ -1,9 +1,10 @@
 import { expToLv, skillMachine, pokemonBase, battleType } from './data'
 
-import {pokemonUrl} from '../index';
+import {logger, pokemonUrl} from '../index';
 
 import { h } from "koishi"
 import { getType, typeEffect } from './mothed';
+import { log } from 'console';
 
 const exptolv = expToLv
 const Base = pokemonBase
@@ -138,7 +139,6 @@ const pokemonCal = {
       let log = []
       let winner
       let loser
-      let oneforone:number[]=[]
       const attack = (att, def) => {
         const cHit=Number(att[0].base[5])/3/256
         const hit=Math.random()<cHit?2:1
@@ -146,11 +146,6 @@ const pokemonCal = {
         const attCategory=skillCategory
         const defCategory=attCategory+1
         const Effect =typeEffect(att[0],def[0],skillMachine.skill[Number(att[0].skill)].type)
-        oneforone.push(Effect)
-        if (oneforone.length==2&&oneforone[0]==oneforone[1]&&oneforone[0]==0){
-          log.push(`打成了平手，技能没有效果`)
-          return [log.join('\n'), winner.id, winner.id]
-        } 
         let damage = Math.floor(((2 * att[0].level + 10) / 250 * Number(att[0].power[attCategory]) / (Number(def[0].power[defCategory])) * skillMachine.skill[Number(att[0].skill)].Dam + 2) *hit*Effect*(Math.random()+0.85))
         def[0].power[0] = def[0].power[0] - damage
         if (def[0].power[0] <= 0) { def[0].power[0] = 0 } else if (att[0].power[0] <= 0) { att[0].power[0] = 0 }
@@ -179,9 +174,10 @@ const pokemonCal = {
       }
       if (first[0].power[0] > 0) { winner = { id: first[0].id }; loser = { id: second[0].id } } else { winner = { id: second[0].id }; loser = { id: first[0].id } }
       return [log.join('\n'), winner.id, loser.id]
-    } catch
+    } catch(e)
     {
-      return `战斗出现意外了`
+      logger.error(e)
+      return [`战斗出现意外了`,a[0].id,a[0].id]
     }
   },
 
@@ -210,19 +206,29 @@ const pokemonCal = {
     let findone = skillMachine.skill.find((skill) => {
       return skill.skill === a
     })
-    return findone.id ? findone.id : 0
+    return findone?.id ? findone.id : 0
   },
 
-  skillinfo(a: string[]) {
+  skillinfo(a: string[],c:string, b: boolean=false) {
     let skill = []
+    let m=0
     for (let i = 0; i < a.length; i++) {
-      skill[i] = a[i]
+      if(b){
+        if(skillMachine.skill[a[i]]?.type===c){
+          skill[m] = a[i]
+          m++
+        }
+      }else{skill[i] = a[i]}
     }
+
     skill.sort((a, b) => { return Number(b) - Number(a) })
-    return `你的技能背包中，最高威力的3个技能是
-${skillMachine.skill[skill[0]].skill}:${skillMachine.skill[skill[0]].Dam} 类型:${skillMachine.skill[skill[0]].category===1?'物理':'特殊'} 属性:${skillMachine.skill[skill[0]].type}
-${skillMachine.skill[skill[1]].skill}:${skillMachine.skill[skill[1]].Dam} 类型:${skillMachine.skill[skill[1]].category===1?'物理':'特殊'} 属性:${skillMachine.skill[skill[1]].type}
-${skillMachine.skill[skill[2]].skill}:${skillMachine.skill[skill[2]].Dam} 类型:${skillMachine.skill[skill[2]].category===1?'物理':'特殊'} 属性:${skillMachine.skill[skill[2]].type}
+    let skillInfo = []
+    for(let j=0;j<skill.length;j++) {
+      if(j>10){break}
+      skillInfo.push(`${skillMachine.skill[skill[j]].skill}:${skillMachine.skill[skill[j]].Dam} 类型:${skillMachine.skill[skill[j]].category===1?'物理':'特殊'} 属性:${skillMachine.skill[skill[j]].type}`)
+    }
+    return `你的技能背包中，最高威力的10个技能是
+${skillInfo.join('\n')}
 `
   }
 }
