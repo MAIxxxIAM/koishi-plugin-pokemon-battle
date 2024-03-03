@@ -27,7 +27,9 @@ const pokemonCal = {
     let exp_bar = ['=', '=', '=', '=', '=', '=', '=', '=', '=', '=']
     let nowExp = b / exptolv.exp_lv[a].exp * 100
     exp_bar[Math.floor(nowExp / 10) - 1] = `✧${(nowExp.toFixed(1))}%✧`
-    return exp_bar.join('')
+    const expBar='🟩'.repeat(Math.floor(nowExp/10))+'🟨'.repeat(nowExp%10>4?1:0)+ '⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜'.substring(Math.round(nowExp/10))
+
+    return expBar
 
   },
 
@@ -140,13 +142,13 @@ const pokemonCal = {
       let winner
       let loser
       const attack = (att, def) => {
-        const cHit=Number(att[0].base[5])/3/256
+        const cHit=Number(att[0].base[5])/4/256
         const hit=Math.random()<cHit?2:1
         const skillCategory=skillMachine.skill[Number(att[0].skill)].category
         const attCategory=skillCategory
         const defCategory=attCategory+1
         const Effect =typeEffect(att[0],def[0],skillMachine.skill[Number(att[0].skill)].type)
-        let damage = Math.floor(((2 * att[0].level + 10) / 250 * Number(att[0].power[attCategory]) / (Number(def[0].power[defCategory])) * skillMachine.skill[Number(att[0].skill)].Dam + 2) *hit*Effect*(Math.random()+0.85))
+        let damage = Math.floor(((2 * att[0].level + 10) / 250 * Number(att[0].power[attCategory]) / (1.7*Number(def[0].power[defCategory])) * skillMachine.skill[Number(att[0].skill)].Dam + 2) *hit*Effect*(Math.random()+0.85))
         def[0].power[0] = def[0].power[0] - damage
         if (def[0].power[0] <= 0) { def[0].power[0] = 0 } else if (att[0].power[0] <= 0) { att[0].power[0] = 0 }
         hit==2?log.push(`*${att[0].battlename}击中要害,对${def[0].battlename}造成 ${Math.floor(damage)} 伤害*`):
