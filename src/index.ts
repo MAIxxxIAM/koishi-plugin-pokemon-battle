@@ -159,7 +159,6 @@ export interface Pokebattle {
   trainer: string[]
   trainerNum: number
   trainerName: string[]
-  battlecd: Date
   relex: Date
   lapTwo: boolean
   ultra: object
@@ -242,7 +241,6 @@ export async function apply(ctx, conf: Config) {
     trainer: 'list',
     trainerNum: 'integer',
     trainerName: 'list',
-    battlecd: 'timestamp',
     relex: 'timestamp'
   }, {
     primary: "id"
@@ -1807,7 +1805,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
     })
 
 
-  ctx.command('宝可梦').subcommand('对战 <user>', '和其他训练师对战')
+  ctx.command('宝可梦').subcommand('对战 <user>', '和其他训练师对战', {minInterval: config.对战cd * 1000})
     .usage(`/对战 @user`)
     .action(async ({ session }, user) => {
       let findTarget =0
@@ -1840,9 +1838,6 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         let maxLevel: number
         if (maxLevelUser.length == 0) return `你已经找不到合适的对手了`
         maxLevel = maxLevelUser[maxLevelUser.length - 1].level
-        if (userArr[0].battlecd?.getTime() + config.对战cd * 1000 >= battlenow) {
-          return `对战太过频繁，请${Math.ceil((userArr[0].battlecd?.getTime() + config.对战cd * 1000 - battlenow) / 1000)}秒后再试`
-        }
         if (userArr[0].monster_1 == '0') return `你还没有宝可梦，快去【${(config.杂交指令别名)}】吧`
         if (userArr[0].skillbag.length == 0) return `快使用【技能扭蛋机】抽取一个技能并装备上`
         if (userArr[0].battleToTrainer <= 0) return `你的宝可梦还在恢复，无法对战，如果你今天还没签到，记得先签到再对战哦`
@@ -1925,7 +1920,6 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         await ctx.database.set('pokebattle', { id: session.userId }, {
           battleToTrainer: { $subtract: [{ $: 'battleToTrainer' }, 1] },
           gold: { $subtract: [{ $: 'gold' }, 500] },
-          battlecd: (new Date(battlenow + (8 - config.时区) * 3600000)).toISOString().slice(0, 19).replace('T', ' ')
         })
         await session.send(`你支付了500金币，请稍等，正在发动了宝可梦对战`)
         if (tarArr[0].battleTimes == 0) {
@@ -1936,8 +1930,8 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         let battlelog = battle[0]
         let winner = battle[1]
         let loser = battle[2]
-        let getgold = pokemonCal.mathRandomInt(500, 1200)
-        let losegold = pokemonCal.mathRandomInt(500, 1200)
+        let getgold = pokemonCal.mathRandomInt(1000, 1500)
+        let losegold = pokemonCal.mathRandomInt(1000, 1500)
         let loserArr = await ctx.database.get('pokebattle', { id: loser })
         let winnerArr = await ctx.database.get('pokebattle', { id: winner })
         let expGet = loserArr[0]?.level > 99 ? 0 : Math.floor(loserArr[0].level * Number(expBase.exp[(Number(winnerArr[0].monster_1.split('.')[0]) > Number(winnerArr[0].monster_1.split('.')[1]) ? Number(winnerArr[0].monster_1.split('.')[1]) : Number(winnerArr[0].monster_1.split('.')[0])) - 1].expbase) / 7)
