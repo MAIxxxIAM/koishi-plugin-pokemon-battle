@@ -1899,14 +1899,14 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
           }
         }
         let tarArr = await ctx.database.get('pokebattle', { id: userId })
-        const getTimes = ((battlenow - new Date(tarArr[0]?.relex).getTime()) / 3600000) > 3 ? 3 : Math.floor((battlenow - new Date(tarArr[0]?.relex).getTime()) / 3600000)
+        const getTimes = ((battlenow - new Date(tarArr[0]?.relex).getTime()) / 3600000) > 30 ? 30 : Math.floor((battlenow - new Date(tarArr[0]?.relex).getTime()) / 3600000)
         if (session.userId == userId) {
           return (`你不能对自己发动对战`)
         } else if (tarArr.length == 0 || tarArr[0].monster_1 == '0') {
           return (`对方还没有宝可梦`)
         }
-        let battleTimes = (getTimes + tarArr[0].battleTimes - 1) >= 2 ? 2 : getTimes + tarArr[0].battleTimes - 1
-        let relex = ((battlenow - new Date(tarArr[0]?.relex).getTime()) / 3600000) > 3 ? new Date(battlenow) : new Date((new Date(tarArr[0]?.relex)).getTime() + 3600000 * Math.floor(battlenow - new Date(tarArr[0]?.relex).getTime()) / 3600000)
+        let battleTimes = (getTimes + tarArr[0].battleTimes - 1) >= 29 ? 29 : getTimes + tarArr[0].battleTimes - 1
+        let relex = ((battlenow - new Date(tarArr[0]?.relex).getTime()) / 3600000) > 30 ? new Date(battlenow) : new Date((new Date(tarArr[0]?.relex)).getTime() + 3600000 * Math.floor(battlenow - new Date(tarArr[0]?.relex).getTime()) / 3600000)
         if (battleTimes < 0) {
           battleTimes = 0
           return `对方的宝可梦还在恢复，无法对战`
@@ -2470,7 +2470,7 @@ ${question}
       }
 
       if (pd) {
-        if (battleToTrainer >= 15) {
+        if (battleToTrainer >= config.对战次数) {
           const addgole = 100 + 50 * userArr[0].ultramonster.length
           userArr[0].gold += addgole
           await ctx.database.set('pokebattle', { id: userId }, {
