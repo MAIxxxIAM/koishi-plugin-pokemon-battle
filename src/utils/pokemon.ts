@@ -192,7 +192,6 @@ const pokemonCal = {
 
   skillbag(a: string[]) {
     let skill = []
-    let skillbag
     for (let i = 0; i < a.length; i++) {
       skill.push(skillMachine.skill[Number(a[i])].skill)
       if ((i + 1) % 5 === 0 && i !== 0) {
@@ -201,7 +200,7 @@ const pokemonCal = {
         skill.splice(i, 1, skill[i] + '💿')
       }
     }
-    return skillbag = skill.join('')
+    return skill.join('')
   },
 
   findskillId(a: string) {

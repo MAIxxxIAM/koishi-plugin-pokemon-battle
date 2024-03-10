@@ -10,6 +10,8 @@ import pidusage from 'pidusage'
 import { exec } from 'child_process'
 import * as lapTwo from './lap/index'
 
+import { Robot } from './utils/robot'
+
 import { qu, an, imglk, expToLv, expBase, skillMachine } from './utils/data'
 
 export const pokemonUrl = 'http://212.64.28.102:5020/i'
@@ -139,29 +141,29 @@ declare module 'koishi' {
 export interface Pokebattle {
   id: string
   name: string
-  date: number
-  captureTimes: number
+  date?: number
+  captureTimes?: number
   battleTimes: number
   battleToTrainer: number
   level: number
   exp: number
   monster_1: string
-  battlename: string
-  AllMonster: string[]
-  ultramonster: string[]
+  battlename?: string
+  AllMonster?: string[]
+  ultramonster?: string[]
   base: string[]
   power: string[]
   skill: number
-  coin: number
-  gold: number
-  changeName: number
-  skillbag: string[]
+  coin?: number
+  gold?: number
+  changeName?: number
+  skillbag?: string[]
   trainer: string[]
-  trainerNum: number
-  trainerName: string[]
-  relex: Date
-  lapTwo: boolean
-  ultra: object
+  trainerNum?: number
+  trainerName?: string[]
+  relex?: Date
+  lapTwo?: boolean
+  ultra?: object
 }
 
 export let testcanvas: string
@@ -1808,10 +1810,10 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
   ctx.command('宝可梦').subcommand('对战 <user>', '和其他训练师对战', {minInterval: config.对战cd * 1000})
     .usage(`/对战 @user`)
     .action(async ({ session }, user) => {
-      let findTarget =0
       let battlenow = new Date().getTime()
       let battleSuccess = false
       let jli: string = ''
+      let robot:Pokebattle
       try {
         let losergold = ''
         let userId: string
@@ -1826,18 +1828,6 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         if (userArr[0].gold < 500) {
           return (`你的金币不足，无法对战`)
         }
-        let maxLevelUser = await ctx.database
-          .select('pokebattle')
-          .where(row => $.ne(row.id, userArr[0].id))
-          .where(row => $.or($.lte(row.relex, new Date(battlenow - 3600000)), $.gt(row.battleTimes, 0)))
-          .where(row => $.ne(row.monster_1, '0'))
-          .where(row => $.ne(row.skillbag, []))
-          .where(row => $.ne(row.power, []))
-          .orderBy(row => row.level)
-          .execute()
-        let maxLevel: number
-        if (maxLevelUser.length == 0) return `你已经找不到合适的对手了`
-        maxLevel = maxLevelUser[maxLevelUser.length - 1].level
         if (userArr[0].monster_1 == '0') return `你还没有宝可梦，快去【${(config.杂交指令别名)}】吧`
         if (userArr[0].skillbag.length == 0) return `快使用【技能扭蛋机】抽取一个技能并装备上`
         if (userArr[0].battleToTrainer <= 0) return `你的宝可梦还在恢复，无法对战，如果你今天还没签到，记得先签到再对战哦`
@@ -1846,40 +1836,18 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
             .select('pokebattle')
             .where(row => $.ne(row.id, userArr[0].id))
             .where(row => $.or($.lte(row.relex, new Date(battlenow - 3600000)), $.gt(row.battleTimes, 0)))
-            .where(row => $.lte(row.level, Number(userArr[0].level) + 2))
-            .where(row => $.gte(row.level, Number(userArr[0].level) - 2))
+            .where(row => $.lte(row.level, Number(userArr[0].level) + 10))
+            .where(row => $.gte(row.level, Number(userArr[0].level) - 10))
             .where(row => $.ne(row.monster_1, '0'))
-            .where(row => $.ne(row.skillbag, []))
-            .where(row => $.ne(row.power, []))
             .execute()
-          let levelCount = Number(userArr[0].level)
           if (randomID.length == 0) {
-            do {
-              randomID = await ctx.database
-                .select('pokebattle')
-                .where(row => $.ne(row.id, userArr[0].id))
-                .where(row => $.or($.lte(row.relex, new Date(battlenow - 3600000)), $.gt(row.battleTimes, 0)))
-                .where(row => $.eq(row.level, levelCount))
-                .where(row => $.ne(row.monster_1, '0'))
-                .where(row => $.ne(row.skillbag, []))
-                .where(row => $.ne(row.power, []))
-                .execute()
-              if (maxLevel < levelCount) {
-                levelCount = levelCount - 1
-                findTarget++
-              } else {
-                levelCount = levelCount + 1
-                findTarget++
-              }
-              if (findTarget > 100) {
-                return `你已经找不到合适的对手了,请耐心等待对手体力恢复`
-              }
-            } while (randomID.length == 0)
-          }
-          do {
-            randomUser = randomID[Math.floor(Math.random() * randomID.length)]
+            robot= new Robot(userArr[0].level)
+            userId =robot.id
+          }else{
+            randomUser = randomID[pokemonCal.mathRandomInt(0, randomID.length - 1)]
             userId = randomUser.id
-          } while (userId == session.userId)
+          }
+
         }
         else {
           if (session.platform == 'red') {
@@ -1893,7 +1861,8 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
             }
           }
         }
-        let tarArr = await ctx.database.get('pokebattle', { id: userId })
+
+        let tarArr =userId?.substring(0, 5)=='robot'?[robot]:await ctx.database.get('pokebattle', { id: userId })
         const getTimes = ((battlenow - new Date(tarArr[0]?.relex).getTime()) / 3600000) > 30 ? 30 : Math.floor((battlenow - new Date(tarArr[0]?.relex).getTime()) / 3600000)
         if (session.userId == userId) {
           return (`你不能对自己发动对战`)
@@ -1932,8 +1901,8 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         let loser = battle[2]
         let getgold = pokemonCal.mathRandomInt(1000, 1500)
         let losegold = pokemonCal.mathRandomInt(1000, 1500)
-        let loserArr = await ctx.database.get('pokebattle', { id: loser })
-        let winnerArr = await ctx.database.get('pokebattle', { id: winner })
+        let loserArr =userId.substring(0, 5)=='robot'?[robot] :await ctx.database.get('pokebattle', { id: loser })
+        let winnerArr =userId.substring(0, 5)=='robot'?[robot] : await ctx.database.get('pokebattle', { id: winner })
         let expGet = loserArr[0]?.level > 99 ? 0 : Math.floor(loserArr[0].level * Number(expBase.exp[(Number(winnerArr[0].monster_1.split('.')[0]) > Number(winnerArr[0].monster_1.split('.')[1]) ? Number(winnerArr[0].monster_1.split('.')[1]) : Number(winnerArr[0].monster_1.split('.')[0])) - 1].expbase) / 7)
         if (loserArr[0].level >= winnerArr[0].level + 6) {
           expGet = Math.floor(expGet * 0.2)
@@ -1981,7 +1950,11 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
                 {
                   key: config.key7,
                   values: [`${losergold}`]
-                }
+                },
+                {
+                  key: config.key8,
+                  values: [`通知：由于用户剧增，决定加入洛托姆训练师缓解服务器压力`]
+                },
               ]
             },
             keyboard: {
@@ -2385,8 +2358,9 @@ tips:${tips}`
       const question = qu[qNumber]
       const ans = [an[qNumber].blue, an[qNumber].red, an[qNumber].green, an[qNumber].yellow]
       const right = an[qNumber].answer
-      const imglink = await toUrl(ctx, imglk[qNumber].split('?')[0])
+
       if (platform == 'qq' && config.QQ官方使用MD) {
+        const imglink = await toUrl(ctx, imglk[qNumber].split('?')[0])
         try {
           await session.bot.internal.sendMessage(session.channelId, {
             content: "111",
@@ -2437,7 +2411,7 @@ tips:${tips}`
         }
       } else {
         await session.send(`${h('at', { id: (userId) })}请听题：
-${h('image', { url: imglink })}
+${h('image', { url: imglk[qNumber].split('?')[0] })}
 ${question}
 题目出自宝可梦 太阳＆月亮第${qNumber + 3}集
 本题答题时间15秒

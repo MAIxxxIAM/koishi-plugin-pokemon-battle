@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-pokemon-battle",
   "description": "杂交宝可梦对战，原生宝可梦已经成为了稀缺资源！快杂交出只属于你的融合宝可梦进行战斗吧，下一个宝可梦大师就是你",
-  "version": "0.9.12",
+  "version": "0.9.13",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
