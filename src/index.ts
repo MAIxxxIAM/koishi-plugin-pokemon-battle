@@ -1,5 +1,6 @@
 import { Schema, h, $, Context } from 'koishi'
 import pokemonCal from './utils/pokemon'
+import {Downloads} from 'koishi-plugin-downloads'
 import { button, catchbutton, findItem, getPic, getRandomName, is12to14, moveToFirst, toUrl, urlbutton, getType } from './utils/mothed'
 import { pathToFileURL } from 'url'
 import { resolve } from 'path'
@@ -9,10 +10,12 @@ import os from 'os'
 import pidusage from 'pidusage'
 import { exec } from 'child_process'
 import * as lapTwo from './lap/index'
+import * as pokedex from './pokedex/pokedex'
 
 import { Robot } from './utils/robot'
 
 import { qu, an, imglk, expToLv, expBase, skillMachine } from './utils/data'
+import { Pokedex } from './pokedex/pokedex'
 
 export const pokemonUrl = 'http://212.64.28.102:5020/i'
 
@@ -145,6 +148,7 @@ export interface Pokebattle {
   captureTimes?: number
   battleTimes: number
   battleToTrainer: number
+  pokedex?: Pokedex
   level: number
   exp: number
   monster_1: string
@@ -223,6 +227,7 @@ export async function apply(ctx, conf: Config) {
     captureTimes: 'integer',
     battleTimes: 'integer',
     battleToTrainer: 'integer',
+    pokedex:'json',
     level: 'unsigned',
     exp: 'unsigned',
     monster_1: 'string',
@@ -286,6 +291,8 @@ export async function apply(ctx, conf: Config) {
   const banID = ['150.150', '151.151', '144.144', '145.145', '146.146', '249.249', '250.250', '251.251', '243.243', '244.244', '245.245']
 
   ctx.plugin(lapTwo)
+
+  ctx.plugin(pokedex)
 
   ctx.command('宝可梦').subcommand('解压图包文件', { authority: 4 })
     .action(async ({ session }) => {
@@ -378,7 +385,7 @@ export async function apply(ctx, conf: Config) {
                     button(2, "宝可问答", "/宝可问答", session.userId, "12"),
                   ]
                 },
-                config.是否开启友链 ? { "buttons": [button(2, "🔗友情链接", "/friendlink", session.userId, "13"), button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] } : { "buttons": [button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] },
+                config.是否开启友链 ? { "buttons": [button(2,'📖 图鉴','/查看图鉴',session.userId,'cmd'),button(2, "🔗友链", "/friendlink", session.userId, "13"), button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] } : { "buttons": [button(2,'📖 图鉴','/查看图鉴',session.userId,'cmd'),button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] },
               ]
             },
           },
@@ -561,7 +568,7 @@ export async function apply(ctx, conf: Config) {
                           button(2, "宝可问答", "/宝可问答", session.userId, "12"),
                         ]
                       },
-                      config.是否开启友链 ? { "buttons": [button(2, "🔗友情链接", "/friendlink", session.userId, "13"), button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] } : { "buttons": [button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] },
+                      config.是否开启友链 ? { "buttons": [button(2,'📖 图鉴','/查看图鉴',session.userId,'cmd'),button(2, "🔗友链", "/friendlink", session.userId, "13"), button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] } : { "buttons": [button(2,'📖 图鉴','/查看图鉴',session.userId,'cmd'),button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] },
                     ]
                   },
                 },
@@ -671,7 +678,7 @@ export async function apply(ctx, conf: Config) {
                         button(2, "宝可问答", "/宝可问答", session.userId, "12"),
                       ]
                     },
-                    config.是否开启友链 ? { "buttons": [button(2, "🔗友情链接", "/friendlink", session.userId, "13"), button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] } : { "buttons": [button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] },
+                    config.是否开启友链 ? { "buttons": [button(2,'📖 图鉴','/查看图鉴',session.userId,'cmd'),button(2, "🔗友链", "/friendlink", session.userId, "13"), button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] } : { "buttons": [button(2,'📖 图鉴','/查看图鉴',session.userId,'cmd'),button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] },
                   ]
                 },
               },
@@ -692,6 +699,7 @@ export async function apply(ctx, conf: Config) {
     .action(async ({ session }) => {
       const { platform } = session
       const userArr: Array<Pokebattle> = await ctx.database.get('pokebattle', { id: session.userId })
+      const pokeDex=new Pokedex(userArr[0])
       let usedCoords = []
       if (userArr.length == 0) {
         try {
@@ -983,8 +991,10 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
 
             if (poke == pokeM[0] || poke == pokeM[1] || poke == pokeM[2]) {//原生宝可梦判定
               userArr[0].AllMonster.push(poke)
+              pokeDex.pull(poke,userArr[0])
               await ctx.database.set('pokebattle', { id: session.userId }, {
                 AllMonster: userArr[0].AllMonster,
+                pokedex:userArr[0].pokedex
               })
             }
             return five
@@ -1076,9 +1086,10 @@ ${(h('at', { id: (session.userId) }))}
               userArr[0].AllMonster[index] = poke
 
               await session.execute(`放生 ${index + 1}`)
-
+              pokeDex.pull(poke,userArr[0])
               await ctx.database.set('pokebattle', { id: session.userId }, {
                 AllMonster: userArr[0].AllMonster,
+                pokedex:userArr[0].pokedex
               })
               reply = `你小心翼翼的把 ${(pokemonCal.pokemonlist(poke))} 放在进背包`
             } else {
@@ -1530,7 +1541,7 @@ ${(h('at', { id: (session.userId) }))}`
                         button(2, "宝可问答", "/宝可问答", session.userId, "12"),
                       ]
                     },
-                    config.是否开启友链 ? { "buttons": [button(2, "🔗友情链接", "/friendlink", session.userId, "13"), button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] } : { "buttons": [button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] },
+                    config.是否开启友链 ? { "buttons": [button(2,'📖 图鉴','/查看图鉴',session.userId,'cmd'),button(2, "🔗友链", "/friendlink", session.userId, "13"), button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] } : { "buttons": [button(2,'📖 图鉴','/查看图鉴',session.userId,'cmd'),button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] },
                   ]
                 },
               },
@@ -1901,8 +1912,8 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         let loser = battle[2]
         let getgold = pokemonCal.mathRandomInt(1000, 1500)
         let losegold = pokemonCal.mathRandomInt(1000, 1500)
-        let loserArr =userId.substring(0, 5)=='robot'?[robot] :await ctx.database.get('pokebattle', { id: loser })
-        let winnerArr =userId.substring(0, 5)=='robot'?[robot] : await ctx.database.get('pokebattle', { id: winner })
+        let loserArr =loser.substring(0, 5)=='robot'?[robot] :await ctx.database.get('pokebattle', { id: loser })
+        let winnerArr =winner.substring(0, 5)=='robot'?[robot] : await ctx.database.get('pokebattle', { id: winner })
         let expGet = loserArr[0]?.level > 99 ? 0 : Math.floor(loserArr[0].level * Number(expBase.exp[(Number(winnerArr[0].monster_1.split('.')[0]) > Number(winnerArr[0].monster_1.split('.')[1]) ? Number(winnerArr[0].monster_1.split('.')[1]) : Number(winnerArr[0].monster_1.split('.')[0])) - 1].expbase) / 7)
         if (loserArr[0].level >= winnerArr[0].level + 6) {
           expGet = Math.floor(expGet * 0.2)
