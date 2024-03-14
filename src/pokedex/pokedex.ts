@@ -118,7 +118,9 @@ export async function apply(ctx) {
                 keyboard: {
                     content: {
                         "rows": [
-                            { "buttons": [button(2, '📖 我的图鉴', '/查看图鉴', session.userId, 'cmd'),button(2, '💻 接收宝可梦', '/接收', session.userId, 'cmd',false), button(2, "🖊签到", "/签到", session.userId, "1"), button(2, "💳信息", "/查看信息", session.userId, "1")] },
+                            { "buttons": [button(2, '📖 我的图鉴', '/查看图鉴', session.userId, 'cmd'),button(2, '💻 接收宝可梦', '/接收', session.userId, 'cmd',false), ] },
+                            { "buttons": [button(2, "🖊 签到", "/签到", session.userId, "1"), button(2, "💳 信息", "/查看信息", session.userId, "1")] },
+
                             page < 2 ? { "buttons": [button(0, "下一页", `/查看图鉴 ${page + 1}`, session.userId, "cmd2")] } : { "buttons": [button(0, "上一页", `/查看图鉴 ${page - 1}`, session.userId, "cmd1"), button(0, "下一页", `/查看图鉴 ${page + 1}`, session.userId, "cmd2")] }
                         ]
                     },
