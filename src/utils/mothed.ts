@@ -91,6 +91,10 @@ return effect
 
 }
 
+export function isVip(a: Pokebattle):boolean {
+  return a?.vip > 0
+}
+
 export function getType(a:string){
   try{const pokemon = a.split('.')
   const [p_f,p_m] = pokemon
