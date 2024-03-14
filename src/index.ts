@@ -16,7 +16,7 @@ import * as pokedex from './pokedex/pokedex'
 
 import { Robot } from './utils/robot'
 
-import {expToLv, expBase, skillMachine } from './utils/data'
+import { expToLv, expBase, skillMachine } from './utils/data'
 import { Pokedex } from './pokedex/pokedex'
 
 export const pokemonUrl = 'http://212.64.28.102:5020/i'
@@ -26,7 +26,7 @@ export const pokemonUrl = 'http://212.64.28.102:5020/i'
 export const name = 'pokemon-battle'
 
 export const inject = {
-  required: ['database', 'downloads', 'canvas','cron']
+  required: ['database', 'downloads', 'canvas', 'cron']
 }
 
 export const usage = `
@@ -184,11 +184,11 @@ export let config: Config
 
 export async function apply(ctx, conf: Config) {
 
-  ctx.cron('0 0 * * *',async () => {
-    const vipUser=await ctx.database.get('pokebattle',{vip:{$gt:0}})
-    for(let i=0;i<vipUser.length;i++){
-      const user=vipUser[i]
-      await ctx.database.set('pokebattle',{id:user.id},{vip:user.vip - 1})
+  ctx.cron('0 0 * * *', async () => {
+    const vipUser = await ctx.database.get('pokebattle', { vip: { $gt: 0 } })
+    for (let i = 0; i < vipUser.length; i++) {
+      const user = vipUser[i]
+      await ctx.database.set('pokebattle', { id: user.id }, { vip: user.vip - 1 })
     }
   })
 
@@ -391,7 +391,7 @@ export async function apply(ctx, conf: Config) {
                     button(2, "⚔️对战", "/对战", session.userId, "4"),
                     button(2, "♂杂交", "/杂交宝可梦", session.userId, "5"),
                     button(2, "👐放生", "/放生", session.userId, "6"),
-                    button(2, "💻接收", "/接收", session.userId, "p",false),
+                    button(2, "💻接收", "/接收", session.userId, "p", false),
                   ]
                 },
                 {
@@ -476,7 +476,7 @@ export async function apply(ctx, conf: Config) {
               name: playerName,
               captureTimes: { $add: [{ $: 'captureTimes' }, config.签到获得个数 + vipRBoll] },
               battleTimes: 30,
-              battleToTrainer: config.对战次数+(vip?20:0),
+              battleToTrainer: config.对战次数 + (vip ? 20 : 0),
               date: dateToday,
               level: lvNew,
               exp: expNew,
@@ -539,11 +539,11 @@ export async function apply(ctx, conf: Config) {
               ctx.drawImage(pokemonimg1[i], 277, 439 + 50 * i, 40, 40)
               ctx.fillText('【' + pokemonCal.pokemonlist(userArr[0].AllMonster[i]) + '】', 322, 467 + 50 * i)
             }
-            if(vip){
+            if (vip) {
               ctx.strokeStyle = 'gold'
-            ctx.lineWidth =10
-            ctx.strokeRect(0, 0, 512, 763)
-          }
+              ctx.lineWidth = 10
+              ctx.strokeRect(0, 0, 512, 763)
+            }
           })
           const { src } = dataUrl.attrs
           if (platform == 'qq' && config.QQ官方使用MD) {
@@ -580,7 +580,7 @@ export async function apply(ctx, conf: Config) {
                           button(2, "🖊签到", "/签到", session.userId, "1"),
                           button(2, "💳查看", "/查看信息", session.userId, "2"),
                           button(2, "🔖帮助", "/宝可梦", session.userId, "3"),
-                    urlbutton(2, "💎VIP", config.aifadian, session.userId, "VIP"),
+                          urlbutton(2, "💎VIP", config.aifadian, session.userId, "VIP"),
                         ]
                       },
                       {
@@ -588,7 +588,7 @@ export async function apply(ctx, conf: Config) {
                           button(2, "⚔️对战", "/对战", session.userId, "4"),
                           button(2, "♂杂交", "/杂交宝可梦", session.userId, "5"),
                           button(2, "👐放生", "/放生", session.userId, "6"),
-                    button(2, "💻接收", "/接收", session.userId, "p",false),
+                          button(2, "💻接收", "/接收", session.userId, "p", false),
                         ]
                       },
                       {
@@ -632,7 +632,7 @@ export async function apply(ctx, conf: Config) {
           date: Math.round(Number(new Date()) / 1000),
           captureTimes: config.签到获得个数,
           battleTimes: 3,
-          battleToTrainer: config.对战次数+(vip?20:0),
+          battleToTrainer: config.对战次数 + (vip ? 20 : 0),
           level: 5,
           exp: 0,
           monster_1: '0',
@@ -692,7 +692,7 @@ export async function apply(ctx, conf: Config) {
                         button(2, "🖊签到", "/签到", session.userId, "1"),
                         button(2, "💳查看", "/查看信息", session.userId, "2"),
                         button(2, "🔖帮助", "/宝可梦", session.userId, "3"),
-                    urlbutton(2, "💎VIP", config.aifadian, session.userId, "VIP"),
+                        urlbutton(2, "💎VIP", config.aifadian, session.userId, "VIP"),
                       ]
                     },
                     {
@@ -700,7 +700,7 @@ export async function apply(ctx, conf: Config) {
                         button(2, "⚔️对战", "/对战", session.userId, "4"),
                         button(2, "♂杂交", "/杂交宝可梦", session.userId, "5"),
                         button(2, "👐放生", "/放生", session.userId, "6"),
-                    button(2, "💻接收", "/接收", session.userId, "p",false),
+                        button(2, "💻接收", "/接收", session.userId, "p", false),
                       ]
                     },
                     {
@@ -799,11 +799,11 @@ export async function apply(ctx, conf: Config) {
               usedCoords.push([x, y]);
               ctx.drawImage(poke_img[i], x, y, 64, 64);
             }
-            if(vip){
+            if (vip) {
               ctx.strokeStyle = 'gold'
-            ctx.lineWidth = 10
-            ctx.strokeRect(0, 0, 512, 512)
-          }
+              ctx.lineWidth = 10
+              ctx.strokeRect(0, 0, 512, 512)
+            }
           })
           const { src } = catchpockmon_img.attrs
           //创建图片
@@ -986,11 +986,99 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
               await ctx.database.set('pokebattle', { id: session.userId }, {
                 ultra: userArr[0].ultra,
               }
-              )}
+              )
             }
+          }
+          if (platform == 'qq' && config.QQ官方使用MD) {
+            try {
+              await session.bot.internal.sendMessage(session.channelId, {
+                content: "111",
+                msg_type: 2,
+                markdown: {
+                  custom_template_id: config.MDid,
+                  params: [
+                    {
+                      key: config.key1,
+                      values: [`<@${session.userId}>获得了新的宝可梦`]
+                    },
+                    {
+                      key: config.key2,
+                      values: ["[img#512px #512px]"]
+                    },
+                    {
+                      key: config.key3,
+                      values: [await toUrl(ctx, `${(pokemonCal.pokemomPic(poke, false)).toString().match(/src="([^"]*)"/)[1]}`)]
+                    },
+                    userArr[0].lapTwo ? {
+                      key: config.key4,
+                      values: ["你集齐了5只传说宝可梦\r据说多遇到几次就可以捕捉他们了"]
+                    } :
+                      {
+                        key: config.key4,
+                        values: ["tips: “大灾变” 事件后的宝可梦好像并不能进行战斗了"]
+                      }
+                  ]
+                },
+                keyboard: {
+                  content: {
+                    "rows": [
+                      { "buttons": [button(2, `继续捕捉宝可梦`, "/捕捉宝可梦", session.userId, "1")] },
+                      userArr[0].AllMonster.length === 5 ? { "buttons": [button(2, `背包已满，放生宝可梦`, "/放生", session.userId, "2")] } : null,
+                    ]
+                  },
+                },
+                msg_id: session.messageId,
+                timestamp: session.timestamp,
+                msg_seq: Math.floor(Math.random() * 1000000),
+              })
+            } catch (e) {
+              return `网络繁忙，再试一次`
+            }
+          } else {
+            await session.send(`${pokemonCal.pokemomPic(poke, false)}
+\u200b${reply}精灵球-1`
+            )
+          }
+
+
+          if (userArr[0].AllMonster.length < 6) {//背包空间
+            let five: string = ''
+            if (userArr[0].AllMonster.length === 5) five = `\n你的背包已经满了,你可以通过【${(config.放生指令别名)}】指令，放生宝可梦`//背包即满
+
+            if (poke == pokeM[0] || poke == pokeM[1] || poke == pokeM[2]) {//原生宝可梦判定
+              userArr[0].AllMonster.push(poke)
+              pokeDex.pull(poke, userArr[0])
+              await ctx.database.set('pokebattle', { id: session.userId }, {
+                AllMonster: userArr[0].AllMonster,
+                pokedex: userArr[0].pokedex
+              })
+            }
+            return five
+          } else if (chooseMonster == '1' || chooseMonster == '2' || chooseMonster == '3') {//背包满
+            //图片服务
+            let pokemonimg1: string[] = []
+            const bgImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'bag.png')}`)
+            for (let i = 0; i < userArr[0].AllMonster.length; i++) {
+              pokemonimg1[i] = await ctx.canvas.loadImage(`${pokemonUrl}/sr/${userArr[0].AllMonster[i].split('.')[0]}.png`)
+            }
+            const img = await ctx.canvas.render(512, 381, async ctx => {
+              ctx.drawImage(bgImg, 0, 0, 512, 381)
+              ctx.font = 'bold 20px zpix'
+              for (let i = 0; i < pokemonimg1.length; i++) {
+                if (i % 2 == 0) {
+                  ctx.drawImage(pokemonimg1[i], 28, 60 + 90 * (i / 2), 64, 64)
+                  ctx.fillText('【' + (i + 1) + '】' + pokemonCal.pokemonlist(userArr[0].AllMonster[i]), 82, 100 + 90 * (i / 2))
+                } else {
+                  ctx.drawImage(pokemonimg1[i], 276, 72 + 90 * ((i - 1) / 2), 64, 64)
+                  ctx.fillText('【' + (i + 1) + '】' + pokemonCal.pokemonlist(userArr[0].AllMonster[i]), 330, 112 + 90 * ((i - 1) / 2))
+                }
+              }
+            })
+            const { src } = img.attrs
+            //图片服务
             if (platform == 'qq' && config.QQ官方使用MD) {
               try {
-                await session.bot.internal.sendMessage(session.channelId, {
+                await session.bot.internal.sendMessage(session.guildId, {
                   content: "111",
                   msg_type: 2,
                   markdown: {
@@ -998,31 +1086,29 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
                     params: [
                       {
                         key: config.key1,
-                        values: [`<@${session.userId}>获得了新的宝可梦`]
+                        values: [`<@${session.userId}>的宝可梦背包已经满了`]
                       },
                       {
                         key: config.key2,
-                        values: ["[img#512px #512px]"]
+                        values: ["[img#512px #381px]"]
                       },
                       {
                         key: config.key3,
-                        values: [await toUrl(ctx, `${(pokemonCal.pokemomPic(poke, false)).toString().match(/src="([^"]*)"/)[1]}`)]
+                        values: [await toUrl(ctx, src)]
                       },
-                      userArr[0].lapTwo ? {
+                      {
                         key: config.key4,
-                        values: ["你集齐了5只传说宝可梦\r据说多遇到几次就可以捕捉他们了"]
-                      } :
-                        {
-                          key: config.key4,
-                          values: ["tips: “大灾变” 事件后的宝可梦好像并不能进行战斗了"]
-                        }
+                        values: [`<@${session.userId}>请你选择需要替换的宝可梦`]
+                      },
                     ]
                   },
                   keyboard: {
                     content: {
                       "rows": [
-                        { "buttons": [button(2, `继续捕捉宝可梦`, "/捕捉宝可梦", session.userId, "1")] },
-                        userArr[0].AllMonster.length === 5 ? { "buttons": [button(2, `背包已满，放生宝可梦`, "/放生", session.userId, "2")] } : null,
+                        { "buttons": [button(0, pokemonCal.pokemonlist(userArr[0].AllMonster[0]), "1", session.userId, "1"), button(0, pokemonCal.pokemonlist(userArr[0].AllMonster[1]), "2", session.userId, "2")] },
+                        { "buttons": [button(0, pokemonCal.pokemonlist(userArr[0].AllMonster[2]), "3", session.userId, "3"), button(0, pokemonCal.pokemonlist(userArr[0].AllMonster[3]), "4", session.userId, "4")] },
+                        { "buttons": [button(0, pokemonCal.pokemonlist(userArr[0].AllMonster[4]), "5", session.userId, "5"), button(0, pokemonCal.pokemonlist(userArr[0].AllMonster[5]), "6", session.userId, "6")] },
+                        { "buttons": [button(0, '放生', "/放生", session.userId, "7")] },
                       ]
                     },
                   },
@@ -1034,92 +1120,7 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
                 return `网络繁忙，再试一次`
               }
             } else {
-              await session.send(`${pokemonCal.pokemomPic(poke, false)}
-\u200b${reply}精灵球-1`
-              )
-            }
-
-
-            if (userArr[0].AllMonster.length < 6) {//背包空间
-              let five: string = ''
-              if (userArr[0].AllMonster.length === 5) five = `\n你的背包已经满了,你可以通过【${(config.放生指令别名)}】指令，放生宝可梦`//背包即满
-
-              if (poke == pokeM[0] || poke == pokeM[1] || poke == pokeM[2]) {//原生宝可梦判定
-                userArr[0].AllMonster.push(poke)
-                pokeDex.pull(poke, userArr[0])
-                await ctx.database.set('pokebattle', { id: session.userId }, {
-                  AllMonster: userArr[0].AllMonster,
-                  pokedex: userArr[0].pokedex
-                })
-              }
-              return five
-            } else if (chooseMonster == '1' || chooseMonster == '2' || chooseMonster == '3') {//背包满
-              //图片服务
-              let pokemonimg1: string[] = []
-              const bgImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'bag.png')}`)
-              for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-                pokemonimg1[i] = await ctx.canvas.loadImage(`${pokemonUrl}/sr/${userArr[0].AllMonster[i].split('.')[0]}.png`)
-              }
-              const img = await ctx.canvas.render(512, 381, async ctx => {
-                ctx.drawImage(bgImg, 0, 0, 512, 381)
-                ctx.font = 'bold 20px zpix'
-                for (let i = 0; i < pokemonimg1.length; i++) {
-                  if (i % 2 == 0) {
-                    ctx.drawImage(pokemonimg1[i], 28, 60 + 90 * (i / 2), 64, 64)
-                    ctx.fillText('【' + (i + 1) + '】' + pokemonCal.pokemonlist(userArr[0].AllMonster[i]), 82, 100 + 90 * (i / 2))
-                  } else {
-                    ctx.drawImage(pokemonimg1[i], 276, 72 + 90 * ((i - 1) / 2), 64, 64)
-                    ctx.fillText('【' + (i + 1) + '】' + pokemonCal.pokemonlist(userArr[0].AllMonster[i]), 330, 112 + 90 * ((i - 1) / 2))
-                  }
-                }
-              })
-              const { src } = img.attrs
-              //图片服务
-              if (platform == 'qq' && config.QQ官方使用MD) {
-                try {
-                  await session.bot.internal.sendMessage(session.guildId, {
-                    content: "111",
-                    msg_type: 2,
-                    markdown: {
-                      custom_template_id: config.MDid,
-                      params: [
-                        {
-                          key: config.key1,
-                          values: [`<@${session.userId}>的宝可梦背包已经满了`]
-                        },
-                        {
-                          key: config.key2,
-                          values: ["[img#512px #381px]"]
-                        },
-                        {
-                          key: config.key3,
-                          values: [await toUrl(ctx, src)]
-                        },
-                        {
-                          key: config.key4,
-                          values: [`<@${session.userId}>请你选择需要替换的宝可梦`]
-                        },
-                      ]
-                    },
-                    keyboard: {
-                      content: {
-                        "rows": [
-                          { "buttons": [button(0, pokemonCal.pokemonlist(userArr[0].AllMonster[0]), "1", session.userId, "1"), button(0, pokemonCal.pokemonlist(userArr[0].AllMonster[1]), "2", session.userId, "2")] },
-                          { "buttons": [button(0, pokemonCal.pokemonlist(userArr[0].AllMonster[2]), "3", session.userId, "3"), button(0, pokemonCal.pokemonlist(userArr[0].AllMonster[3]), "4", session.userId, "4")] },
-                          { "buttons": [button(0, pokemonCal.pokemonlist(userArr[0].AllMonster[4]), "5", session.userId, "5"), button(0, pokemonCal.pokemonlist(userArr[0].AllMonster[5]), "6", session.userId, "6")] },
-                          { "buttons": [button(0, '放生', "/放生", session.userId, "7")] },
-                        ]
-                      },
-                    },
-                    msg_id: session.messageId,
-                    timestamp: session.timestamp,
-                    msg_seq: Math.floor(Math.random() * 1000000),
-                  })
-                } catch (e) {
-                  return `网络繁忙，再试一次`
-                }
-              } else {
-                await session.send(`\n
+              await session.send(`\n
 你的背包中已经有6只原生宝可梦啦
 请选择一只替换
 【1】${(pokemonCal.pokemonlist(userArr[0].AllMonster[0]))}
@@ -1130,47 +1131,43 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
 【6】${(pokemonCal.pokemonlist(userArr[0].AllMonster[5]))}
 ${(h('at', { id: (session.userId) }))}
           `)
-              }
-              const BagNum = await session.prompt(25000)
-
-              if (!BagNum) {
-                return '你犹豫太久啦！宝可梦从你手中逃走咯~'
-              }
-              if (BagNum >= '1' && BagNum <= '6') {
-                const index = parseInt(BagNum) - 1
-                userArr[0].AllMonster[index] = poke
-
-                await session.execute(`放生 ${index + 1}`)
-                pokeDex.pull(poke, userArr[0])
-                await ctx.database.set('pokebattle', { id: session.userId }, {
-                  AllMonster: userArr[0].AllMonster,
-                  pokedex: userArr[0].pokedex
-                })
-                reply = `你小心翼翼的把 ${(pokemonCal.pokemonlist(poke))} 放在进背包`
-              } else {
-                reply = `你好像对新的宝可梦不太满意，把 ${(pokemonCal.pokemonlist(poke))} 放生了`
-              }
-              await session.send(reply)
             }
-          } else {
-            let dateToday = Math.round(Number(new Date()) / 1000)
-            let dateNow = Math.floor(userArr[0].date / 86400 - 28800)
-            if (dateNow == Math.floor(dateToday / 86400 - 28800)) {
-              return `\n
+            const BagNum = await session.prompt(25000)
+
+            if (!BagNum ||!['1', '2', '3', '4', '5', '6'].includes(BagNum)) {
+              return `你好像对新的宝可梦不太满意，把 ${(pokemonCal.pokemonlist(poke))} 放了`
+            }
+            const index = parseInt(BagNum) - 1
+            userArr[0].AllMonster[index] = poke
+            await session.execute(`放生 ${index + 1}`)
+            pokeDex.pull(poke, userArr[0])
+            await ctx.database.set('pokebattle', { id: session.userId }, {
+              AllMonster: userArr[0].AllMonster,
+              pokedex: userArr[0].pokedex
+            })
+            reply = `你小心翼翼的把 ${(pokemonCal.pokemonlist(poke))} 放在进背包`
+
+            await session.send(reply)
+          }
+        } else {
+          let dateToday = Math.round(Number(new Date()) / 1000)
+          let dateNow = Math.floor(userArr[0].date / 86400 - 28800)
+          if (dateNow == Math.floor(dateToday / 86400 - 28800)) {
+            return `\n
 今日次数已用完
 请明天通过【${(config.签到指令别名)}】获取精灵球
 ${(h('at', { id: (session.userId) }))}
 `
-            } else {
-              return `\n
+          } else {
+            return `\n
 你的精灵球已经用完啦
 请通过【${(config.签到指令别名)}】获取新的精灵球
 ${(h('at', { id: (session.userId) }))}
           `
-            }
           }
         }
       }
+    }
     )
 
 
@@ -1201,11 +1198,11 @@ ${(h('at', { id: (session.userId) }))}
               ctx.fillText('【' + (i + 1) + '】' + pokemonCal.pokemonlist(userArr[0].AllMonster[i]), 330, 112 + 90 * ((i - 1) / 2))
             }
           }
-          if(vip){
+          if (vip) {
             ctx.strokeStyle = 'gold'
-          ctx.lineWidth = 10
-          ctx.strokeRect(0, 0, 512, 381)
-        }
+            ctx.lineWidth = 10
+            ctx.strokeRect(0, 0, 512, 381)
+          }
         })
         const { src } = image.attrs
         //图片服务
@@ -1544,11 +1541,11 @@ ${(h('at', { id: (session.userId) }))}`
           ctx.fillText('EXP>>                <<', 105, 650)
           ctx.drawImage(overlay, 181, 644, 160 * userArr[0].exp / expToLv.exp_lv[userArr[0].level].exp, 8)
           ctx.drawImage(expbar, 163, 641, 180, 20)
-          if(vip){
+          if (vip) {
             ctx.strokeStyle = 'gold'
-          ctx.lineWidth = 10
-          ctx.strokeRect(0, 0, 485, 703)
-        }
+            ctx.lineWidth = 10
+            ctx.strokeRect(0, 0, 485, 703)
+          }
         })
 
         const { src } = infoImgSelfClassic.attrs
@@ -1591,7 +1588,7 @@ ${(h('at', { id: (session.userId) }))}`
                         button(2, "🖊签到", "/签到", session.userId, "1"),
                         button(2, "💳查看", "/查看信息", session.userId, "2"),
                         button(2, "🔖帮助", "/宝可梦", session.userId, "3"),
-                    urlbutton(2, "💎VIP", config.aifadian, session.userId, "VIP"),
+                        urlbutton(2, "💎VIP", config.aifadian, session.userId, "VIP"),
                       ]
                     },
                     {
@@ -1599,7 +1596,7 @@ ${(h('at', { id: (session.userId) }))}`
                         button(2, "⚔️对战", "/对战", session.userId, "4"),
                         button(2, "♂杂交", "/杂交宝可梦", session.userId, "5"),
                         button(2, "👐放生", "/放生", session.userId, "6"),
-                    button(2, "💻接收", "/接收", session.userId, "p",false),
+                        button(2, "💻接收", "/接收", session.userId, "p", false),
                       ]
                     },
                     {
@@ -1661,6 +1658,7 @@ ${(h('at', { id: (session.userId) }))}`
       }
       //图片服务
       if (pokemon) {
+        if (Number(pokemon)>userArr[0].AllMonster.length) return `输入错误`
         choose = pokemon
       }
       else {
@@ -1681,11 +1679,11 @@ ${(h('at', { id: (session.userId) }))}`
               ctx.fillText('【' + (i + 1) + '】' + pokemonCal.pokemonlist(userArr[0].AllMonster[i]), 330, 112 + 90 * ((i - 1) / 2))
             }
           }
-          if(vip){
+          if (vip) {
             ctx.strokeStyle = 'gold'
-          ctx.lineWidth = 10
-          ctx.strokeRect(0, 0, 512, 381)
-        }
+            ctx.lineWidth = 10
+            ctx.strokeRect(0, 0, 512, 381)
+          }
         })
         const { src } = image.attrs
         //图片服务
@@ -1926,29 +1924,30 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         if (userArr[0].skillbag.length == 0) return `快使用【技能扭蛋机】抽取一个技能并装备上`
         if (userArr[0].battleToTrainer <= 0) return `你的宝可梦还在恢复，无法对战，如果你今天还没签到，记得先签到再对战哦`
         if (!user) {
-          try{let randomID = await ctx.database
-            .select('pokebattle')
-            .where(row => $.ne(row.id, userArr[0].id))
-            .where(row => $.lte(row.level, Number(userArr[0].level) +10))
-            .where(row => $.gte(row.level, Number(userArr[0].level) -10))
-            .where(row => $.or($.lte(row.relex, new Date(battlenow - 3600000)), $.gt(row.battleTimes, 0)))
-            .where(row => $.ne(row.monster_1, '0'))
-            .execute()
-          if (randomID.length == 0) {
-            robot = new Robot(userArr[0].level)
-            userId = robot.id
-          } else {
-            randomUser = randomID[pokemonCal.mathRandomInt(0, randomID.length - 1)]
-            userId = randomUser.id
-          }
-        }catch(e){
+          try {
+            let randomID = await ctx.database
+              .select('pokebattle')
+              .where(row => $.ne(row.id, userArr[0].id))
+              .where(row => $.lte(row.level, Number(userArr[0].level) + 10))
+              .where(row => $.gte(row.level, Number(userArr[0].level) - 10))
+              .where(row => $.or($.lte(row.relex, new Date(battlenow - 3600000)), $.gt(row.battleTimes, 0)))
+              .where(row => $.ne(row.monster_1, '0'))
+              .execute()
+            if (randomID.length == 0) {
+              robot = new Robot(userArr[0].level)
+              userId = robot.id
+            } else {
+              randomUser = randomID[pokemonCal.mathRandomInt(0, randomID.length - 1)]
+              userId = randomUser.id
+            }
+          } catch (e) {
             logger.error(e)
             return `网络繁忙，请再试一次`
           }
 
         }
         else {
-          if (session.platform == 'red') {
+          if (session.platform !== 'qq') {
             userId = session.elements[1].attrs.id
             battleSuccess = true
           } else {
@@ -2469,7 +2468,7 @@ tips:${tips}`
 
   ctx.command('宝可梦').subcommand('训练师改名', '改动训练师名字').action(async ({ session }) => {
     const userArr = await ctx.database.get('pokebattle', { id: session.userId })
-    if(userArr.length==0) {
+    if (userArr.length == 0) {
       try {
         await session.execute(`签到`)
         return
@@ -2496,8 +2495,8 @@ tips:${tips}`
     } catch {
       await session.send(`请向机器人回复你想要的训练师名字`)
     }
-    const newName=await session.prompt(60000)
-    userArr[0].trainerName[0]=newName
+    const newName = await session.prompt(60000)
+    userArr[0].trainerName[0] = newName
     await ctx.database.set('pokebattle', { id: session.userId }, {
       trainerName: userArr[0].trainerName
     })

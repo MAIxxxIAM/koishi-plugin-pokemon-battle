@@ -155,7 +155,7 @@ const pokemonCal = {
         log.push(`${att[0].battlename}的 [${skillMachine.skill[Number(att[0].skill)].skill}]，造成 ${Math.floor(damage)} 伤害,${def[0].battlename}剩余${Math.floor(def[0].power[0])}HP`)
       }
       let first, second
-      if (a[0].power[4] > b[0].power[4]) {
+      if (Number(a[0].power[4]) > Number(b[0].power[4])) {
         first = a
         second = b
       } else {
