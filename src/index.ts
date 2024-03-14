@@ -1926,12 +1926,12 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         if (userArr[0].skillbag.length == 0) return `快使用【技能扭蛋机】抽取一个技能并装备上`
         if (userArr[0].battleToTrainer <= 0) return `你的宝可梦还在恢复，无法对战，如果你今天还没签到，记得先签到再对战哦`
         if (!user) {
-          let randomID = await ctx.database
+          try{let randomID = await ctx.database
             .select('pokebattle')
             .where(row => $.ne(row.id, userArr[0].id))
+            .where(row => $.lte(row.level, Number(userArr[0].level) +10))
+            .where(row => $.gte(row.level, Number(userArr[0].level) -10))
             .where(row => $.or($.lte(row.relex, new Date(battlenow - 3600000)), $.gt(row.battleTimes, 0)))
-            .where(row => $.lte(row.level, Number(userArr[0].level) + 10))
-            .where(row => $.gte(row.level, Number(userArr[0].level) - 10))
             .where(row => $.ne(row.monster_1, '0'))
             .execute()
           if (randomID.length == 0) {
@@ -1940,6 +1940,10 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
           } else {
             randomUser = randomID[pokemonCal.mathRandomInt(0, randomID.length - 1)]
             userId = randomUser.id
+          }
+        }catch(e){
+            logger.error(e)
+            return `网络繁忙，请再试一次`
           }
 
         }
