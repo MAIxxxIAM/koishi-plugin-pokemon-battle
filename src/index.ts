@@ -19,7 +19,7 @@ import { Robot } from './utils/robot'
 import { expToLv, expBase, skillMachine } from './utils/data'
 import { Pokedex } from './pokedex/pokedex'
 
-export const pokemonUrl = 'http://212.64.28.102:5020/i'
+
 
 
 
@@ -66,6 +66,7 @@ export interface Config {
   扭蛋币定价: number
   改名卡定价: number
   aifadian: string
+  图片源: string
   canvas图片品质: number
   对战图片品质: number
   对战cd: number
@@ -88,6 +89,7 @@ export interface Config {
 }
 
 export const Config = Schema.intersect([
+
   Schema.object({
     签到指令别名: Schema.string().default('签到'),
     捕捉指令别名: Schema.string().default('捕捉宝可梦'),
@@ -102,6 +104,13 @@ export const Config = Schema.intersect([
     对战图片品质: Schema.number().role('slider')
       .min(0).max(100).step(1).default(100),
     时区: Schema.number().default(8).description('中国时区为8，其他时区请自行调整'),
+  }),
+  Schema.object({
+    图片源: Schema.union([
+      Schema.const('https://gitee.com/maikama/pokemon-fusion-image/raw/master').description('gitee'),
+      Schema.const('https://raw.githubusercontent.com/MAIxxxIAM/pokemonFusionImage/main').description('github'),
+      Schema.string().description('本地图床').default('127.0.0.1:5020/i'),
+    ]).description('图片源'),
   }),
   Schema.object({
     签到获得个数: Schema.number().default(2),
@@ -181,8 +190,10 @@ export let testcanvas: string
 export let logger: any
 export let shop: any[]
 export let config: Config
+export let pokemonUrl: string
 
 export async function apply(ctx, conf: Config) {
+  pokemonUrl = conf.图片源
 
   ctx.cron('0 0 * * *', async () => {
     const vipUser = await ctx.database.get('pokebattle', { vip: { $gt: 0 } })
@@ -399,6 +410,7 @@ export async function apply(ctx, conf: Config) {
                     button(2, "📷捕捉", "/捕捉宝可梦", session.userId, "7"),
                     button(2, "📕属性", "/属性", session.userId, "8"),
                     button(2, "🛒商店", "/购买", session.userId, "9"),
+                    button(2, "🏆兑换", "/使用", session.userId, "x", false),
                   ]
                 },
                 {
@@ -596,6 +608,7 @@ export async function apply(ctx, conf: Config) {
                           button(2, "📷捕捉", "/捕捉宝可梦", session.userId, "7"),
                           button(2, "📕属性", "/属性", session.userId, "8"),
                           button(2, "🛒商店", "/购买", session.userId, "9"),
+                          button(2, "🏆兑换", "/使用", session.userId, "x", false),
                         ]
                       },
                       {
@@ -708,6 +721,7 @@ export async function apply(ctx, conf: Config) {
                         button(2, "📷捕捉", "/捕捉宝可梦", session.userId, "7"),
                         button(2, "📕属性", "/属性", session.userId, "8"),
                         button(2, "🛒商店", "/购买", session.userId, "9"),
+                        button(2, "🏆兑换", "/使用", session.userId, "x", false),
                       ]
                     },
                     {
@@ -1134,7 +1148,7 @@ ${(h('at', { id: (session.userId) }))}
             }
             const BagNum = await session.prompt(25000)
 
-            if (!BagNum ||!['1', '2', '3', '4', '5', '6'].includes(BagNum)) {
+            if (!BagNum || !['1', '2', '3', '4', '5', '6'].includes(BagNum)) {
               return `你好像对新的宝可梦不太满意，把 ${(pokemonCal.pokemonlist(poke))} 放了`
             }
             const index = parseInt(BagNum) - 1
@@ -1604,6 +1618,7 @@ ${(h('at', { id: (session.userId) }))}`
                         button(2, "📷捕捉", "/捕捉宝可梦", session.userId, "7"),
                         button(2, "📕属性", "/属性", session.userId, "8"),
                         button(2, "🛒商店", "/购买", session.userId, "9"),
+                        button(2, "🏆兑换", "/使用", session.userId, "x", false),
                       ]
                     },
                     {
@@ -1658,7 +1673,7 @@ ${(h('at', { id: (session.userId) }))}`
       }
       //图片服务
       if (pokemon) {
-        if (Number(pokemon)>userArr[0].AllMonster.length) return `输入错误`
+        if (Number(pokemon) > userArr[0].AllMonster.length) return `输入错误`
         choose = pokemon
       }
       else {
@@ -1838,6 +1853,7 @@ ${(h('at', { id: (session.userId) }))}
       }
       if (platform == 'qq' && config.QQ官方使用MD) {
         try {
+          const src = await toUrl(ctx,`${pokemonUrl}/fusion/${img.split('.')[0]}/${img}.png`)
           await session.bot.internal.sendMessage(session.guildId, {
             content: "111",
             msg_type: 2,
@@ -1854,7 +1870,7 @@ ${(h('at', { id: (session.userId) }))}
                 },
                 {
                   key: config.key3,
-                  values: [`${pokemonUrl}/fusion/${img.split('.')[0]}/${img}.png`]
+                  values: [src]
                 },
                 {
                   key: config.key4,
@@ -1998,8 +2014,9 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         let loser = battle[2]
         let loserArr = loser.substring(0, 5) == 'robot' ? [robot] : await ctx.database.get('pokebattle', { id: loser })
         let winnerArr = winner.substring(0, 5) == 'robot' ? [robot] : await ctx.database.get('pokebattle', { id: winner })
-        let getgold = pokemonCal.mathRandomInt(1000, 1500) + (isVip(winnerArr[0]) ? 500 : 0)
-        let losegold = pokemonCal.mathRandomInt(1000, 1500) + (isVip(loserArr[0]) ? 500 : 0)
+        let getgold = pokemonCal.mathRandomInt(1000, 1500)
+        let losegold = pokemonCal.mathRandomInt(getgold - 300, getgold) + (isVip(loserArr[0]) ? 500 : 0)
+        getgold = getgold + (isVip(winnerArr[0]) ? 500 : 0)
         const winName = isVip(winnerArr[0]) ? "[💎VIP]" : ''
         const loseName = isVip(loserArr[0]) ? "[💎VIP]" : ''
         let expGet = loserArr[0]?.level > 99 ? 0 : Math.floor((isVip(loserArr[0]) ? 1.5 : 1) * loserArr[0].level * Number(expBase.exp[(Number(winnerArr[0].monster_1.split('.')[0]) > Number(winnerArr[0].monster_1.split('.')[1]) ? Number(winnerArr[0].monster_1.split('.')[1]) : Number(winnerArr[0].monster_1.split('.')[0])) - 1].expbase) / 7)

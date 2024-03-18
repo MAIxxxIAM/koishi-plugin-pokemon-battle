@@ -42,7 +42,7 @@ export async function  apply ( ctx ) {
                   params: [
                     {
                       key: config.key1,
-                      values: [`请<@${session.userId}>听题：`]
+                      values: [`请<@${session.userId}>听题：\r\r 猜猜我的父母是谁`]
                     },
                     {
                       key: config.key2,
@@ -77,7 +77,7 @@ export async function  apply ( ctx ) {
         }catch(e){
             await session.send(`${h('at', { id: (session.userId) })}请听题：
 ${h('image', { url:qImage})}
-猜猜我是谁
+猜猜我的父母是谁
 本题答题时间60秒
 1·${q.name[0]}
 2·${q.name[1]}

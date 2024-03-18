@@ -11,12 +11,14 @@ export interface IPokeGuess {
 export class PokeGuess implements IPokeGuess {
     options: string[]
     name: string[]
+    other: string
     which: number
     constructor() {
         let n = []
         let m=[]
+        let randomNumber: number
         while (n.length < 4) {
-            const randomNumber = Math.floor(Math.random() * 251) + 1;
+                randomNumber = Math.floor(Math.random() * 251) + 1;
             const randomPokemon = randomNumber + '.' + randomNumber
             if (n.indexOf(randomPokemon) === -1) {
                 n.push(randomPokemon);
@@ -27,11 +29,12 @@ export class PokeGuess implements IPokeGuess {
         this.which = randomIndex
         this.name = m
         this.options = n
+        this.other =  n[randomIndex].split('.')[0]+'.'+ (Math.floor(Math.random() * 251) + 1)
     }
     async q(ctx) {
-        const { options, which } = this
+        const { options, which ,other} = this
         const qImage = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, '../assets/img/components', 'q.png')}`)
-        const pokeImage = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${options[which].split('.')[0]}/${options[which].split('.')[0]}.png`)
+        const pokeImage = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${options[which].split('.')[0]}/${other}.png`)
         const ImageBlack = await ctx.canvas.render(110, 110, (ctx) => {
             ctx.drawImage(pokeImage, 0, 0, 110, 110)
             ctx.globalCompositeOperation = 'source-atop'
@@ -47,9 +50,9 @@ export class PokeGuess implements IPokeGuess {
         return src
     }
     async a(ctx) {
-        const { options, which } = this
+        const { options, which,other } = this
         const aImage = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, '../assets/img/components', 'a.png')}`)
-        const pokeImage = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${options[which].split('.')[0]}/${options[which].split('.')[0]}.png`)
+        const pokeImage = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${options[which].split('.')[0]}/${other}.png`)
         const Image = await ctx.canvas.render(458, 331, (ctx) => {
             ctx.drawImage(aImage, 0, 0, 458, 331)
             ctx.drawImage(pokeImage, 50, 70, 110, 110)
