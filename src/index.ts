@@ -2222,7 +2222,7 @@ ${skilllist.join('\n')}
         } catch (e) { return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球` }
       }
       if (userArr[0].trainer.length == 1) return `${h('at', { id: (session.userId) })}你只有一个训练师，无法更换`
-      let nameList = `${userArr[0].trainerName.map((item: any, index: number) => `${index + 1}.${item}`).join('\n')}`
+      let nameList = `${userArr[0].trainerName.map((item: any, index: number) => `${index + 1}-${item}`).join('\n')}`
       if (!name) {
         await session.send(`${h('at', { id: (session.userId) })}请输入你想更换的训练师名字\n${nameList}`)
         const choose = await session.prompt(20000)
