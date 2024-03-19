@@ -29,12 +29,12 @@ export class PokeGuess implements IPokeGuess {
         this.which = randomIndex
         this.name = m
         this.options = n
-        this.other =  n[randomIndex].split('.')[0]+'.'+ (Math.floor(Math.random() * 251) + 1)
+        this.other = (Math.floor(Math.random() * 251) + 1)+'.'+ n[randomIndex].split('.')[0] 
     }
     async q(ctx) {
         const { options, which ,other} = this
         const qImage = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, '../assets/img/components', 'q.png')}`)
-        const pokeImage = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${options[which].split('.')[0]}/${other}.png`)
+        const pokeImage = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${other.split('.')[0]}/${other}.png`)
         const ImageBlack = await ctx.canvas.render(110, 110, (ctx) => {
             ctx.drawImage(pokeImage, 0, 0, 110, 110)
             ctx.globalCompositeOperation = 'source-atop'
@@ -52,7 +52,7 @@ export class PokeGuess implements IPokeGuess {
     async a(ctx) {
         const { options, which,other } = this
         const aImage = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, '../assets/img/components', 'a.png')}`)
-        const pokeImage = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${options[which].split('.')[0]}/${other}.png`)
+        const pokeImage = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${other.split('.')[0]}/${other}.png`)
         const Image = await ctx.canvas.render(458, 331, (ctx) => {
             ctx.drawImage(aImage, 0, 0, 458, 331)
             ctx.drawImage(pokeImage, 50, 70, 110, 110)

@@ -13,6 +13,7 @@ import pidusage from 'pidusage'
 import { exec } from 'child_process'
 import * as lapTwo from './lap/index'
 import * as pokedex from './pokedex/pokedex'
+import * as notice from './notice/index'
 
 import { Robot } from './utils/robot'
 
@@ -67,8 +68,6 @@ export interface Config {
   改名卡定价: number
   aifadian: string
   图片源: string
-  canvas图片品质: number
-  对战图片品质: number
   对战cd: number
   对战次数: number
   捕捉等待时间: number
@@ -86,6 +85,7 @@ export interface Config {
   key10: string
   bot邀请链接: string
   时区: number
+  gameNotice: string
 }
 
 export const Config = Schema.intersect([
@@ -98,17 +98,14 @@ export const Config = Schema.intersect([
     放生指令别名: Schema.string().default('放生'),
     指令使用日志: Schema.boolean().default(false).description('是否输出指令使用日志'),
     是否开启友链: Schema.boolean().default(false).description('是否开启友链'),
-    战斗详情是否渲染图片: Schema.boolean().default(false).description('渲染图片需要加载puppeteer服务'),
-    canvas图片品质: Schema.number().role('slider')
-      .min(0).max(1).step(0.1).default(1),
-    对战图片品质: Schema.number().role('slider')
-      .min(0).max(100).step(1).default(100),
+    战斗详情是否渲染图片: Schema.boolean().default(false),
     时区: Schema.number().default(8).description('中国时区为8，其他时区请自行调整'),
+    gameNotice: Schema.string().default('📅2024/3/19\n添加更新公告\n添加指令：/vip查询\n修复满级技能池减少的bug\n按钮区域排版更合理\n').description('游戏公告'),
   }),
   Schema.object({
     图片源: Schema.union([
-      Schema.const('https://gitee.com/maikama/pokemon-fusion-image/raw/master').description('gitee'),
-      Schema.const('https://raw.githubusercontent.com/MAIxxxIAM/pokemonFusionImage/main').description('github'),
+      Schema.const('https://gitee.com/maikama/pokemon-fusion-image/raw/master').default('https://gitee.com/maikama/pokemon-fusion-image/raw/master').description('gitee'),
+      Schema.const('https://raw.githubusercontent.com/MAIxxxIAM/pokemonFusionImage/main').default('https://raw.githubusercontent.com/MAIxxxIAM/pokemonFusionImage/main').description('github'),
       Schema.string().description('本地图床').default('127.0.0.1:5020/i'),
     ]).description('图片源'),
   }),
@@ -205,6 +202,7 @@ export async function apply(ctx, conf: Config) {
 
   config = conf
   ctx.plugin(pokeGuess)
+  ctx.plugin(notice)
 
   if (config.指令使用日志) {
     ctx.on('command/before-execute', ({ session, command }) => {
@@ -251,9 +249,9 @@ export async function apply(ctx, conf: Config) {
     id: 'string',
     name: 'string',
     date: 'integer',
-    captureTimes: 'integer',
-    battleTimes: 'integer',
-    battleToTrainer: 'integer',
+    captureTimes: 'unsigned',
+    battleTimes: 'unsigned',
+    battleToTrainer: 'unsigned',
     pokedex: 'json',
     level: 'unsigned',
     exp: 'unsigned',
@@ -269,8 +267,8 @@ export async function apply(ctx, conf: Config) {
     base: 'list',
     power: 'list',
     skill: 'integer',
-    coin: 'integer',
-    gold: 'integer',
+    coin: 'unsigned',
+    gold: 'unsigned',
     changeName: {
       type: 'integer',
       initial: 1,
@@ -278,7 +276,7 @@ export async function apply(ctx, conf: Config) {
     },
     skillbag: 'list',
     trainer: 'list',
-    trainerNum: 'integer',
+    trainerNum: 'unsigned',
     trainerName: 'list',
     relex: 'timestamp'
   }, {
@@ -394,7 +392,7 @@ export async function apply(ctx, conf: Config) {
                     button(2, "🖊签到", "/签到", session.userId, "1"),
                     button(2, "💳查看", "/查看信息", session.userId, "2"),
                     button(2, "🔖帮助", "/宝可梦", session.userId, "3"),
-                    urlbutton(2, "💎VIP", config.aifadian, session.userId, "VIP"),
+                    button(2, "🔈公告", "/notice", session.userId, "ntc"),
                   ]
                 },
                 {
@@ -415,9 +413,11 @@ export async function apply(ctx, conf: Config) {
                 },
                 {
                   "buttons": [
-                    urlbutton(2, "📜反馈", "http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=CEqeK9q1yilezUrsSX9L3kO0hK5Wpi_7&authKey=SBuSSQtld6nFctvq9d4Xm1lW%2B0C3QuFZ6FLhCJk8ELCbtOqiR4drHcrbfRLVmcvz&noverify=0&group_code=836655539", session.userId, "10"),
-                    urlbutton(2, "📎邀请BOT", config.bot邀请链接, session.userId, "11"),
-                    button(2, "宝可问答", "/宝可问答", session.userId, "12"),
+                    urlbutton(2, "反馈", "http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=CEqeK9q1yilezUrsSX9L3kO0hK5Wpi_7&authKey=SBuSSQtld6nFctvq9d4Xm1lW%2B0C3QuFZ6FLhCJk8ELCbtOqiR4drHcrbfRLVmcvz&noverify=0&group_code=836655539", session.userId, "10"),
+                    urlbutton(2, "邀请", config.bot邀请链接, session.userId, "11"),
+                    button(2, "📃问答", "/宝可问答", session.userId, "12"),
+                    button(2, "VIP", '/vip查询', session.userId, "VIP"),
+
                   ]
                 },
                 config.是否开启友链 ? { "buttons": [button(2, '📖 图鉴', '/查看图鉴', session.userId, 'cmd'), button(2, "🔗友链", "/friendlink", session.userId, "13"), button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] } : { "buttons": [button(2, '📖 图鉴', '/查看图鉴', session.userId, 'cmd'), button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] },
@@ -592,7 +592,7 @@ export async function apply(ctx, conf: Config) {
                           button(2, "🖊签到", "/签到", session.userId, "1"),
                           button(2, "💳查看", "/查看信息", session.userId, "2"),
                           button(2, "🔖帮助", "/宝可梦", session.userId, "3"),
-                          urlbutton(2, "💎VIP", config.aifadian, session.userId, "VIP"),
+                          button(2, "🔈公告", "/notice", session.userId, "ntc")
                         ]
                       },
                       {
@@ -613,9 +613,10 @@ export async function apply(ctx, conf: Config) {
                       },
                       {
                         "buttons": [
-                          urlbutton(2, "📜反馈", "http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=CEqeK9q1yilezUrsSX9L3kO0hK5Wpi_7&authKey=SBuSSQtld6nFctvq9d4Xm1lW%2B0C3QuFZ6FLhCJk8ELCbtOqiR4drHcrbfRLVmcvz&noverify=0&group_code=836655539", session.userId, "10"),
-                          urlbutton(2, "📎邀请BOT", config.bot邀请链接, session.userId, "11"),
-                          button(2, "宝可问答", "/宝可问答", session.userId, "12"),
+                          urlbutton(2, "反馈", "http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=CEqeK9q1yilezUrsSX9L3kO0hK5Wpi_7&authKey=SBuSSQtld6nFctvq9d4Xm1lW%2B0C3QuFZ6FLhCJk8ELCbtOqiR4drHcrbfRLVmcvz&noverify=0&group_code=836655539", session.userId, "10"),
+                          urlbutton(2, "邀请", config.bot邀请链接, session.userId, "11"),
+                          button(2, "📃问答", "/宝可问答", session.userId, "12"),
+                          button(2, "VIP", '/vip查询', session.userId, "VIP"),
                         ]
                       },
                       config.是否开启友链 ? { "buttons": [button(2, '📖 图鉴', '/查看图鉴', session.userId, 'cmd'), button(2, "🔗友链", "/friendlink", session.userId, "13"), button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] } : { "buttons": [button(2, '📖 图鉴', '/查看图鉴', session.userId, 'cmd'), button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] },
@@ -705,7 +706,7 @@ export async function apply(ctx, conf: Config) {
                         button(2, "🖊签到", "/签到", session.userId, "1"),
                         button(2, "💳查看", "/查看信息", session.userId, "2"),
                         button(2, "🔖帮助", "/宝可梦", session.userId, "3"),
-                        urlbutton(2, "💎VIP", config.aifadian, session.userId, "VIP"),
+                        button(2, "🔈公告", "/notice", session.userId, "ntc"),
                       ]
                     },
                     {
@@ -726,9 +727,10 @@ export async function apply(ctx, conf: Config) {
                     },
                     {
                       "buttons": [
-                        urlbutton(2, "📜反馈", "http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=CEqeK9q1yilezUrsSX9L3kO0hK5Wpi_7&authKey=SBuSSQtld6nFctvq9d4Xm1lW%2B0C3QuFZ6FLhCJk8ELCbtOqiR4drHcrbfRLVmcvz&noverify=0&group_code=836655539", session.userId, "10"),
-                        urlbutton(2, "📎邀请BOT", config.bot邀请链接, session.userId, "11"),
-                        button(2, "宝可问答", "/宝可问答", session.userId, "12"),
+                        urlbutton(2, "反馈", "http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=CEqeK9q1yilezUrsSX9L3kO0hK5Wpi_7&authKey=SBuSSQtld6nFctvq9d4Xm1lW%2B0C3QuFZ6FLhCJk8ELCbtOqiR4drHcrbfRLVmcvz&noverify=0&group_code=836655539", session.userId, "10"),
+                        urlbutton(2, "邀请", config.bot邀请链接, session.userId, "11"),
+                        button(2, "📃问答", "/宝可问答", session.userId, "12"),
+                        button(2, "VIP", '/vip查询', session.userId, "VIP"),
                       ]
                     },
                     config.是否开启友链 ? { "buttons": [button(2, '📖 图鉴', '/查看图鉴', session.userId, 'cmd'), button(2, "🔗友链", "/friendlink", session.userId, "13"), button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] } : { "buttons": [button(2, '📖 图鉴', '/查看图鉴', session.userId, 'cmd'), button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] },
@@ -1602,7 +1604,7 @@ ${(h('at', { id: (session.userId) }))}`
                         button(2, "🖊签到", "/签到", session.userId, "1"),
                         button(2, "💳查看", "/查看信息", session.userId, "2"),
                         button(2, "🔖帮助", "/宝可梦", session.userId, "3"),
-                        urlbutton(2, "💎VIP", config.aifadian, session.userId, "VIP"),
+                        button(2, "🔈公告", "/notice", session.userId, "ntc"),
                       ]
                     },
                     {
@@ -1623,9 +1625,10 @@ ${(h('at', { id: (session.userId) }))}`
                     },
                     {
                       "buttons": [
-                        urlbutton(2, "📜反馈", "http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=CEqeK9q1yilezUrsSX9L3kO0hK5Wpi_7&authKey=SBuSSQtld6nFctvq9d4Xm1lW%2B0C3QuFZ6FLhCJk8ELCbtOqiR4drHcrbfRLVmcvz&noverify=0&group_code=836655539", session.userId, "10"),
-                        urlbutton(2, "📎邀请BOT", config.bot邀请链接, session.userId, "11"),
-                        button(2, "宝可问答", "/宝可问答", session.userId, "12"),
+                        urlbutton(2, "反馈", "http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=CEqeK9q1yilezUrsSX9L3kO0hK5Wpi_7&authKey=SBuSSQtld6nFctvq9d4Xm1lW%2B0C3QuFZ6FLhCJk8ELCbtOqiR4drHcrbfRLVmcvz&noverify=0&group_code=836655539", session.userId, "10"),
+                        urlbutton(2, "邀请", config.bot邀请链接, session.userId, "11"),
+                        button(2, "📃问答", "/宝可问答", session.userId, "12"),
+                        button(2, "VIP", '/vip查询', session.userId, "VIP"),
                       ]
                     },
                     config.是否开启友链 ? { "buttons": [button(2, '📖 图鉴', '/查看图鉴', session.userId, 'cmd'), button(2, "🔗友链", "/friendlink", session.userId, "13"), button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] } : { "buttons": [button(2, '📖 图鉴', '/查看图鉴', session.userId, 'cmd'), button(2, userArr[0]?.lapTwo ? "收集进度" : "进入二周目", userArr[0]?.lapTwo ? "/ultra" : "/laptwo", session.userId, "14")] },

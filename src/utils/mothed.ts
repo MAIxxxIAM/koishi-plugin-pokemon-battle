@@ -1,6 +1,6 @@
 import { resolve } from 'path'
-import { Pokebattle,config,logger,pokemonUrl,shop,testcanvas } from '..'
-import { type,battleType, skillMachine } from './data'
+import { Pokebattle,logger,pokemonUrl,shop,testcanvas } from '..'
+import { type,battleType} from './data'
 
 
 export function is12to14() {
@@ -45,7 +45,7 @@ export async function getPic(ctx, log, user, tar) {
         ctx.fillText(`⚔️${array[i]}⚔️`, 356, 300 + 60 * (i))
         if (i > 4) { break }
       }
-      dataUrl = await ctx.canvas.toDataURL('image/jpeg', config.canvas图片品质)
+      dataUrl = await ctx.canvas.toDataURL('image/jpeg')
     })
     return dataUrl
   } catch (e) {
