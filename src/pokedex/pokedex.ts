@@ -1,5 +1,5 @@
 import { Context, h } from "koishi"
-import { Pokebattle, config, pokemonUrl, testcanvas } from ".."
+import { Pokebattle, config, testcanvas } from ".."
 import { resolve } from "path"
 import pokemonCal from "../utils/pokemon"
 import { button, toUrl } from "../utils/mothed"
@@ -71,7 +71,7 @@ export async function apply(ctx) {
         }
         let dexImage = []
         for (let pokemon in player.pokedex.dex[page - 1]) {
-            dexImage.push(await ctx.canvas.loadImage(`${pokemonUrl}/sr/${player.pokedex.dex[page - 1][pokemon]}.png`))
+            dexImage.push(await ctx.canvas.loadImage(`${config.图片源}/sr/${player.pokedex.dex[page - 1][pokemon]}.png`))
         }
         const boxImage = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `../assets/img/components/box.png`)}`)
         const pokeDexImage = await ctx.canvas.render(324, 296, async (ctx) => {
@@ -207,7 +207,7 @@ export async function apply(ctx) {
             let pokemonimg1: string[] = []
             const bgImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, '../assets/img/components', 'bag.png')}`)
             for (let i = 0; i < player.AllMonster.length; i++) {
-                pokemonimg1[i] = await ctx.canvas.loadImage(`${pokemonUrl}/sr/${player.AllMonster[i].split('.')[0]}.png`)
+                pokemonimg1[i] = await ctx.canvas.loadImage(`${config.图片源}/sr/${player.AllMonster[i].split('.')[0]}.png`)
             }
             const img = await ctx.canvas.render(512, 381, async ctx => {
                 ctx.drawImage(bgImg, 0, 0, 512, 381)

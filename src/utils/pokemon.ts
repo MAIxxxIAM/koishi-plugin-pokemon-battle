@@ -1,10 +1,8 @@
 import { expToLv, skillMachine, pokemonBase, battleType } from './data'
 
-import {logger, pokemonUrl} from '../index';
+import {config} from '../index';
 
 import { h } from "koishi"
-import { getType, typeEffect } from './mothed';
-import { log } from 'console';
 
 const exptolv = expToLv
 const Base = pokemonBase
@@ -125,8 +123,8 @@ const pokemonCal = {
       let pokemon_b = Number(pokemonNow[1])
 
       if (b) { 
-        return h.image(`${pokemonUrl}/fusion/${pokemon_a}/${pokemon_a}.${pokemon_b}.png`) } else {
-        return h.image(`${pokemonUrl}/fusion/${pokemon_a}/${pokemon_a}.png`)
+        return h.image(`${config.图片源}/fusion/${pokemon_a}/${pokemon_a}.${pokemon_b}.png`) } else {
+        return h.image(`${config.图片源}/fusion/${pokemon_a}/${pokemon_a}.png`)
       }
 
 
@@ -136,52 +134,7 @@ const pokemonCal = {
     }
   },
 
-  pokebattle(a, b) {
-    try {
-      let log = []
-      let winner
-      let loser
-      const attack = (att, def) => {
-        const cHit=Number(att[0].base[5])/4/256
-        const hit=Math.random()<cHit?2:1
-        const skillCategory=skillMachine.skill[Number(att[0].skill)].category
-        const attCategory=skillCategory
-        const defCategory=attCategory+1
-        const Effect =typeEffect(att[0],def[0],skillMachine.skill[Number(att[0].skill)].type)
-        let damage = Math.floor(((2 * att[0].level + 10) / 250 * Number(att[0].power[attCategory]) / (1.7*Number(def[0].power[defCategory])) * skillMachine.skill[Number(att[0].skill)].Dam + 2) *hit*Effect*(Math.random()*0.15+0.85))
-        def[0].power[0] = def[0].power[0] - damage
-        if (def[0].power[0] <= 0) { def[0].power[0] = 0 } else if (att[0].power[0] <= 0) { att[0].power[0] = 0 }
-        hit==2?log.push(`*${att[0].battlename}击中要害,对${def[0].battlename}造成 ${Math.floor(damage)} 伤害*`):
-        log.push(`${att[0].battlename}的 [${skillMachine.skill[Number(att[0].skill)].skill}]，造成 ${Math.floor(damage)} 伤害,${def[0].battlename}剩余${Math.floor(def[0].power[0])}HP`)
-      }
-      let first, second
-      if (Number(a[0].power[5]) > Number(b[0].power[5])) {
-        first = a
-        second = b
-      } else {
-        first = b
-        second = a
-      }
-      while (a[0].power[0] > 0 && b[0].power[0] > 0) {
-        attack(first, second)
-        if (second[0].power[0] <= 0) {
-          log.push(`${first[0].battlename} 胜利了`)
-          break
-        }
-        attack(second, first)
-        if (first[0].power[0] <= 0) {
-          log.push(`${second[0].battlename} 胜利了`)
-          break
-        }
-      }
-      if (first[0].power[0] > 0) { winner = { id: first[0].id }; loser = { id: second[0].id } } else { winner = { id: second[0].id }; loser = { id: first[0].id } }
-      return [log.join('\n'), winner.id, loser.id]
-    } catch(e)
-    {
-      logger.error(e)
-      return [`战斗出现意外了`,a[0].id,a[0].id]
-    }
-  },
+  
 
   pokemonskill(a: number) {
 

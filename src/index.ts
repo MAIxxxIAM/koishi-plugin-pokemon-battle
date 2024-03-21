@@ -1,6 +1,5 @@
 import { Schema, h, $, Context, is } from 'koishi'
 import pokemonCal from './utils/pokemon'
-import { Downloads } from 'koishi-plugin-downloads'
 import * as pokeGuess from './pokeguess'
 import { } from 'koishi-plugin-cron'
 import { button, catchbutton, findItem, getPic, getRandomName, is12to14, moveToFirst, toUrl, urlbutton, getType, isVip } from './utils/mothed'
@@ -19,6 +18,8 @@ import { Robot } from './utils/robot'
 
 import { expToLv, expBase, skillMachine } from './utils/data'
 import { Pokedex } from './pokedex/pokedex'
+import { pokebattle } from './battle/pvp'
+import { Pokebattle, model } from './model'
 
 
 
@@ -85,7 +86,6 @@ export interface Config {
   key10: string
   bot邀请链接: string
   时区: number
-  gameNotice: string
 }
 
 export const Config = Schema.intersect([
@@ -100,7 +100,6 @@ export const Config = Schema.intersect([
     是否开启友链: Schema.boolean().default(false).description('是否开启友链'),
     战斗详情是否渲染图片: Schema.boolean().default(false),
     时区: Schema.number().default(8).description('中国时区为8，其他时区请自行调整'),
-    gameNotice: Schema.string().default('📅2024/3/19\n添加更新公告\n添加指令：/vip查询\n修复满级技能池减少的bug\n按钮区域排版更合理\n').description('游戏公告'),
   }),
   Schema.object({
     图片源: Schema.union([
@@ -145,52 +144,15 @@ export const Config = Schema.intersect([
 
 ])
 
-declare module 'koishi' {
-  interface Tables {
-    pokebattle: Pokebattle
-  }
-}
 
-
-
-export interface Pokebattle {
-  id: string
-  name: string
-  date?: number
-  captureTimes?: number
-  battleTimes: number
-  battleToTrainer: number
-  pokedex?: Pokedex
-  level: number
-  exp: number
-  vip?: number
-  monster_1: string
-  battlename?: string
-  AllMonster?: string[]
-  ultramonster?: string[]
-  base: string[]
-  power: string[]
-  skill: number
-  coin?: number
-  gold?: number
-  changeName?: number
-  skillbag?: string[]
-  trainer: string[]
-  trainerNum?: number
-  trainerName?: string[]
-  relex?: Date
-  lapTwo?: boolean
-  ultra?: object
-}
 
 export let testcanvas: string
 export let logger: any
 export let shop: any[]
 export let config: Config
-export let pokemonUrl: string
 
 export async function apply(ctx, conf: Config) {
-  pokemonUrl = conf.图片源
+  model(ctx)
 
   ctx.cron('0 0 * * *', async () => {
     const vipUser = await ctx.database.get('pokebattle', { vip: { $gt: 0 } })
@@ -245,43 +207,6 @@ export async function apply(ctx, conf: Config) {
   }
 
 
-  ctx.database.extend('pokebattle', {
-    id: 'string',
-    name: 'string',
-    date: 'integer',
-    captureTimes: 'unsigned',
-    battleTimes: 'unsigned',
-    battleToTrainer: 'unsigned',
-    pokedex: 'json',
-    level: 'unsigned',
-    exp: 'unsigned',
-    vip: {
-      type: 'unsigned',
-      initial: 0,
-      nullable: false,
-    },
-    monster_1: 'string',
-    battlename: 'string',
-    AllMonster: 'list',
-    ultramonster: 'list',
-    base: 'list',
-    power: 'list',
-    skill: 'integer',
-    coin: 'unsigned',
-    gold: 'unsigned',
-    changeName: {
-      type: 'integer',
-      initial: 1,
-      nullable: false,
-    },
-    skillbag: 'list',
-    trainer: 'list',
-    trainerNum: 'unsigned',
-    trainerName: 'list',
-    relex: 'timestamp'
-  }, {
-    primary: "id"
-  })
 
   shop = [
     {
@@ -503,16 +428,16 @@ export async function apply(ctx, conf: Config) {
           } catch (e) { return `请再试一次` }
           //图片服务
           let image = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', '签到.png')}`)
-          let pokemonimg = await ctx.canvas.loadImage(`${pokemonUrl}/sr/0.png`)
+          let pokemonimg = await ctx.canvas.loadImage(`${config.图片源}/sr/0.png`)
           let pokemonimg1 = []
           for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-            pokemonimg1[i] = await ctx.canvas.loadImage(`${pokemonUrl}/sr/${userArr[0].AllMonster[i].split('.')[0]}.png`)
+            pokemonimg1[i] = await ctx.canvas.loadImage(`${config.图片源}/sr/${userArr[0].AllMonster[i].split('.')[0]}.png`)
           }
           let ultramonsterimg = []
           for (let i = 0; i < 5; i++) {
-            ultramonsterimg[i] = await ctx.canvas.loadImage(`${pokemonUrl}/sr/${banID[i].split('.')[0]}.png`)
+            ultramonsterimg[i] = await ctx.canvas.loadImage(`${config.图片源}/sr/${banID[i].split('.')[0]}.png`)
           }
-          if (userArr[0].monster_1 !== '0') pokemonimg = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${userArr[0].monster_1.split('.')[0]}/${userArr[0].monster_1}.png`)
+          if (userArr[0].monster_1 !== '0') pokemonimg = await ctx.canvas.loadImage(`${config.图片源}/fusion/${userArr[0].monster_1.split('.')[0]}/${userArr[0].monster_1}.png`)
           let trainers = '0'
           if (userArr[0].trainer[0] !== '0') { trainers = userArr[0].trainer[0] }
           let trainerimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/trainer/' + trainers + '.png')}`)
@@ -658,7 +583,7 @@ export async function apply(ctx, conf: Config) {
         })
         //图片服务
         const bg_img = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'spawn.png')}`)
-        const pokemonimg = await ctx.canvas.loadImage(`${pokemonUrl}/sr/${firstMonster_}.png`)
+        const pokemonimg = await ctx.canvas.loadImage(`${config.图片源}/sr/${firstMonster_}.png`)
         const replyImg = await ctx.canvas.render(512, 384, async (ctx) => {
           ctx.drawImage(bg_img, 0, 0, 512, 384)
           ctx.drawImage(pokemonimg, 99, 285, 64, 64)
@@ -788,9 +713,9 @@ export async function apply(ctx, conf: Config) {
 
           let poke_img = []
           let bg_img = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'catchBG.png')}`)
-          poke_img[0] = await ctx.canvas.loadImage(`${pokemonUrl}/sr/${grassMonster[0]}.png`)
-          poke_img[1] = await ctx.canvas.loadImage(`${pokemonUrl}/sr/${grassMonster[1]}.png`)
-          poke_img[2] = await ctx.canvas.loadImage(`${pokemonUrl}/sr/${grassMonster[2]}.png`)
+          poke_img[0] = await ctx.canvas.loadImage(`${config.图片源}/sr/${grassMonster[0]}.png`)
+          poke_img[1] = await ctx.canvas.loadImage(`${config.图片源}/sr/${grassMonster[1]}.png`)
+          poke_img[2] = await ctx.canvas.loadImage(`${config.图片源}/sr/${grassMonster[2]}.png`)
           let grassImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'Grass.png')}`)
           let catchpockmon_img = await ctx.canvas.render(512, 512, async (ctx) => {
             //载入背景
@@ -1075,7 +1000,7 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
             let pokemonimg1: string[] = []
             const bgImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'bag.png')}`)
             for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-              pokemonimg1[i] = await ctx.canvas.loadImage(`${pokemonUrl}/sr/${userArr[0].AllMonster[i].split('.')[0]}.png`)
+              pokemonimg1[i] = await ctx.canvas.loadImage(`${config.图片源}/sr/${userArr[0].AllMonster[i].split('.')[0]}.png`)
             }
             const img = await ctx.canvas.render(512, 381, async ctx => {
               ctx.drawImage(bgImg, 0, 0, 512, 381)
@@ -1200,7 +1125,7 @@ ${(h('at', { id: (session.userId) }))}
         let pokemonimg1: string[] = []
         const bgImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'bag.png')}`)
         for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-          pokemonimg1[i] = await ctx.canvas.loadImage(`${pokemonUrl}/sr/${userArr[0].AllMonster[i].split('.')[0]}.png`)
+          pokemonimg1[i] = await ctx.canvas.loadImage(`${config.图片源}/sr/${userArr[0].AllMonster[i].split('.')[0]}.png`)
         }
         const image = await ctx.canvas.render(512, 381, async ctx => {
           ctx.drawImage(bgImg, 0, 0, 512, 381)
@@ -1312,10 +1237,10 @@ ${(h('at', { id: (session.userId) }))}
             if (userArr[0].monster_1 != '0') {
               //图片服务
               let img_fuse = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components/fuse.png')}`)
-              let img_F = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${pokeM.split('.')[0]}/${pokeM.split('.')[0]}.png`)
-              let img_M = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${pokeW.split('.')[0]}/${pokeW.split('.')[0]}.png`)
-              let img_S = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${dan[1].split('.')[0]}/${dan[1]}.png`)
-              let img_C = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${userArr[0].monster_1.split('.')[0]}/${userArr[0].monster_1}.png`)
+              let img_F = await ctx.canvas.loadImage(`${config.图片源}/fusion/${pokeM.split('.')[0]}/${pokeM.split('.')[0]}.png`)
+              let img_M = await ctx.canvas.loadImage(`${config.图片源}/fusion/${pokeW.split('.')[0]}/${pokeW.split('.')[0]}.png`)
+              let img_S = await ctx.canvas.loadImage(`${config.图片源}/fusion/${dan[1].split('.')[0]}/${dan[1]}.png`)
+              let img_C = await ctx.canvas.loadImage(`${config.图片源}/fusion/${userArr[0].monster_1.split('.')[0]}/${userArr[0].monster_1}.png`)
               let img_zj = await ctx.canvas.render(512, 768, async ctx => {
                 ctx.drawImage(img_fuse, 0, 0, 512, 768)
                 ctx.drawImage(img_F, 16, 78, 112, 112)
@@ -1511,12 +1436,12 @@ ${(h('at', { id: (session.userId) }))}`
         const infoId = userArr[0].id.length > 15 ? `${userArr[0].id.slice(0, 3)}...${userArr[0].id.slice(-3)}` : userArr[0].id
         const infoName = userArr[0].name ? userArr[0].name : session.username > 10 ? session.username : infoId
         for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-          pokemonimg1[i] = await ctx.canvas.loadImage(`${pokemonUrl}/sr/${userArr[0].AllMonster[i].split('.')[0]}.png`)
+          pokemonimg1[i] = await ctx.canvas.loadImage(`${config.图片源}/sr/${userArr[0].AllMonster[i].split('.')[0]}.png`)
         }
         for (let i = 0; i < 5; i++) {
-          ultramonsterimg[i] = await ctx.canvas.loadImage(`${pokemonUrl}/sr/${banID[i].split('.')[0]}.png`)
+          ultramonsterimg[i] = await ctx.canvas.loadImage(`${config.图片源}/sr/${banID[i].split('.')[0]}.png`)
         }
-        if (userArr[0].monster_1 !== '0') pokemonimg = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${userArr[0].monster_1.split('.')[0]}/${userArr[0].monster_1}.png`)
+        if (userArr[0].monster_1 !== '0') pokemonimg = await ctx.canvas.loadImage(`${config.图片源}/fusion/${userArr[0].monster_1.split('.')[0]}/${userArr[0].monster_1}.png`)
         let trainers = '0'
         if (userArr[0].trainer[0] !== '0') { trainers = userArr[0].trainer[0] }
         let trainerimg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `./assets/img/trainer/${trainers}.png`)}`)
@@ -1683,7 +1608,7 @@ ${(h('at', { id: (session.userId) }))}`
         let pokemonimg1: string[] = []
         const bgImg = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, './assets/img/components', 'bag.png')}`)
         for (let i = 0; i < userArr[0].AllMonster.length; i++) {
-          pokemonimg1[i] = await ctx.canvas.loadImage(`${pokemonUrl}/sr/${userArr[0].AllMonster[i].split('.')[0]}.png`)
+          pokemonimg1[i] = await ctx.canvas.loadImage(`${config.图片源}/sr/${userArr[0].AllMonster[i].split('.')[0]}.png`)
         }
         const image = await ctx.canvas.render(512, 381, async ctx => {
           ctx.drawImage(bgImg, 0, 0, 512, 381)
@@ -1856,7 +1781,7 @@ ${(h('at', { id: (session.userId) }))}
       }
       if (platform == 'qq' && config.QQ官方使用MD) {
         try {
-          const src = await toUrl(ctx,`${pokemonUrl}/fusion/${img.split('.')[0]}/${img}.png`)
+          const src = await toUrl(ctx,`${config.图片源}/fusion/${img.split('.')[0]}/${img}.png`)
           await session.bot.internal.sendMessage(session.guildId, {
             content: "111",
             msg_type: 2,
@@ -2000,7 +1925,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
           battleTimes: battleTimes,
           base: tarArr[0].base,
           power: tarArr[0].power,
-          relex: (new Date(relex.getTime() + (8 - config.时区) * 3600000)).toISOString().slice(0, 19).replace('T', ' ')
+          relex: new Date(relex.getTime() + (8 - config.时区) * 3600000)
         })
         await ctx.database.set('pokebattle', { id: session.userId }, {
           battleToTrainer: { $subtract: [{ $: 'battleToTrainer' }, 1] },
@@ -2011,7 +1936,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
           let noTrainer = battleSuccess ? session.elements[1].attrs.name : isVip(tarArr[0]) ? "[💎VIP]" : '' + (tarArr[0].name || tarArr[0].battlename)
           jli = `${noTrainer}已经筋疲力尽,每一小时恢复一次可对战次数`
         }
-        let battle = pokemonCal.pokebattle(userArr, tarArr)
+        let battle = pokebattle(userArr[0], tarArr[0])
         let battlelog = battle[0]
         let winner = battle[1]
         let loser = battle[2]
@@ -2265,10 +2190,10 @@ ${skilllist.join('\n')}
         } catch (e) { return `${h('at', { id: (session.userId) })}请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球` }
       }
       if (userArr[0].trainerNum < 1) return `${h('at', { id: (session.userId) })}你的盲盒不足，无法开启`
-      if (userArr[0].trainer.length > 59) return `你的训练师已经满了`
-      let getTrainer = String(pokemonCal.mathRandomInt(0, 60))
+      if (userArr[0].trainer.length > 111) return `你已经获得了全部训练师`
+      let getTrainer = String(pokemonCal.mathRandomInt(0, 112))
       while (userArr[0].trainer.includes(getTrainer)) {
-        getTrainer = String(pokemonCal.mathRandomInt(0, 60))
+        getTrainer = String(pokemonCal.mathRandomInt(0, 112))
       }
       userArr[0].trainer.push(getTrainer)
       const trainerImg = h.image(pathToFileURL(resolve(__dirname, './assets/img/trainer', getTrainer + '.png')).href)
@@ -2523,3 +2448,5 @@ tips:${tips}`
     return `你的训练师名字已经改为${newName}`
   })
 }
+export { Pokebattle }
+

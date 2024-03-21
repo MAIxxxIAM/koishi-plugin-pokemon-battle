@@ -1,5 +1,5 @@
 import { resolve } from 'path'
-import { Pokebattle,logger,pokemonUrl,shop,testcanvas } from '..'
+import { Pokebattle,logger,config,shop,testcanvas } from '..'
 import { type,battleType} from './data'
 
 
@@ -17,8 +17,8 @@ export async function getPic(ctx, log, user, tar) {
     if (user.power[4] > tar.power[4]) { att = user; def = tar } else { att = tar; def = user }
     const attPerson = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `../assets/img/trainer/${att.trainer[0]}.png`)}`)
     const defPerson = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `../assets/img/trainer/${def.trainer[0]}.png`)}`)
-    const attPokemon = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${att.monster_1.split('.')[0]}/${att.monster_1}.png`)
-    const defPokemon = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${def.monster_1.split('.')[0]}/${def.monster_1}.png`)
+    const attPokemon = await ctx.canvas.loadImage(`${config.图片源}/fusion/${att.monster_1.split('.')[0]}/${att.monster_1}.png`)
+    const defPokemon = await ctx.canvas.loadImage(`${config.图片源}/fusion/${def.monster_1.split('.')[0]}/${def.monster_1}.png`)
     const backimage = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `../assets/img/components/battle.png`)}`)
     let array = log.split('\n')
     let attCount: number
@@ -83,9 +83,9 @@ export async function toUrl(ctx, img) {
   return url
 }
 
-export function typeEffect(a:Pokebattle,b:Pokebattle,skillType:string){
-  const [a1,a2] = getType(a.monster_1)
-  const [b1,b2] = getType(b.monster_1)
+export function typeEffect(a:string,b:string,skillType:string){
+  const [a1,a2] = getType(a)
+  const [b1,b2] = getType(b)
   const effect  = battleType.data[skillType][b1]*battleType.data[skillType][b2]*([a1,a2].includes(skillType)?1.5:1)
 return effect
 

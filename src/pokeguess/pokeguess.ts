@@ -1,5 +1,5 @@
 import { resolve } from "path"
-import { pokemonUrl, testcanvas } from ".."
+import { config, testcanvas } from ".."
 import pokemonCal from "../utils/pokemon"
 
 
@@ -34,7 +34,7 @@ export class PokeGuess implements IPokeGuess {
     async q(ctx) {
         const { options, which ,other} = this
         const qImage = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, '../assets/img/components', 'q.png')}`)
-        const pokeImage = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${other.split('.')[0]}/${other}.png`)
+        const pokeImage = await ctx.canvas.loadImage(`${config.图片源}/fusion/${other.split('.')[0]}/${other}.png`)
         const ImageBlack = await ctx.canvas.render(110, 110, (ctx) => {
             ctx.drawImage(pokeImage, 0, 0, 110, 110)
             ctx.globalCompositeOperation = 'source-atop'
@@ -52,7 +52,7 @@ export class PokeGuess implements IPokeGuess {
     async a(ctx) {
         const { options, which,other } = this
         const aImage = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, '../assets/img/components', 'a.png')}`)
-        const pokeImage = await ctx.canvas.loadImage(`${pokemonUrl}/fusion/${other.split('.')[0]}/${other}.png`)
+        const pokeImage = await ctx.canvas.loadImage(`${config.图片源}/fusion/${other.split('.')[0]}/${other}.png`)
         const Image = await ctx.canvas.render(458, 331, (ctx) => {
             ctx.drawImage(aImage, 0, 0, 458, 331)
             ctx.drawImage(pokeImage, 50, 70, 110, 110)

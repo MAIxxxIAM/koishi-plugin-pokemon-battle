@@ -3,20 +3,39 @@ import { config } from "..";
 import { button, urlbutton } from "../utils/mothed";
 
 
-
-
 export async function apply(ctx: Context) {
-    ctx.command('宝可梦').subcommand('notice', '宝可梦公告').action(async () => {
-        const notice = config.gameNotice
-        const text = `当前版本公告：
+    ctx.command('宝可梦').subcommand('notice', '宝可梦公告').action(async ({session}) => {
+        const notices = await ctx.database.get('pokemon.notice',{})
+        if (notices.length === 0) {
+            return '暂无公告'
+        }
+        const last = notices[notices.length-1]
+        const notice= "📅" +  last.date.toLocaleDateString() + '\n' + last.notice + "\n"
+        const text = `${session.platform=='qq'?'\u200b\n':''}当前版本公告：
 ${notice}`
         return text
     })
 
-    ctx.command('宝可梦').subcommand('notice', '宝可梦公告').subcommand('nset <notices:string>', '设置宝可梦公告', { authority: 4 }).action(async ({ session }, notices: string) => {
-        const nowDay = new Date().toLocaleDateString()
-        const notice = "📅" + nowDay + '\n' + notices + "\n"
-        config.gameNotice += notice
+    ctx.command('宝可梦').subcommand('notice', '宝可梦公告').subcommand('nset <notices:string> <newOrOld:string>', '设置宝可梦公告', { authority: 4 }).action(async ({ session }, notices: string,newOrOld:string) => {
+        if(newOrOld=='o'){
+            const notice = await ctx.database.get('pokemon.notice',{})
+            if (notice.length === 0) {
+               await session.execute('nset '+notices)
+               return
+            }
+            notice.sort((a,b)=>a.date.getTime()-b.date.getTime())
+            const last = notice[0]
+            last.notice +='\n'+notices
+            await ctx.database.set('pokemon.notice',{id:last.id},{notice:last.notice})
+            return '设置成功'
+        }
+        const nowDay = new Date()
+        const notice =notices
+        ctx.database.create('pokemon.notice', { 
+            date: nowDay, 
+            notice: notice 
+        }
+            )
         return '设置成功'
     })
     ctx.command('宝可梦').subcommand('vip查询', '查看vip剩余天数').action(async ({ session }) => {
