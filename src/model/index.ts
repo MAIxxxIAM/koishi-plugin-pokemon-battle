@@ -94,7 +94,6 @@ export interface Pokebattle {
     trainer: string[]
     trainerNum?: number
     trainerName?: string[]
-    relex?: Date
     lapTwo?: boolean
     ultra?: object
 }
@@ -134,7 +133,6 @@ export async function model(ctx: Context) {
         trainer: 'list',
         trainerNum: 'unsigned',
         trainerName: 'list',
-        relex: 'timestamp'
     }, {
         primary: "id"
     })

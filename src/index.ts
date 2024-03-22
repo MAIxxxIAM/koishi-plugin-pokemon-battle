@@ -152,6 +152,7 @@ export let shop: any[]
 export let config: Config
 
 export async function apply(ctx, conf: Config) {
+  config = conf
   model(ctx)
 
   ctx.cron('0 0 * * *', async () => {
@@ -161,8 +162,14 @@ export async function apply(ctx, conf: Config) {
       await ctx.database.set('pokebattle', { id: user.id }, { vip: user.vip - 1 })
     }
   })
+  ctx.cron('0 * * * *', async () => {
+    const relex = await ctx.database.get('pokebattle', { battleTimes: { $lt: 30 } })
+    for (let i = 0; i < relex.length; i++) {
+      const user = relex[i]
+      await ctx.database.set('pokebattle', { id: user.id }, { battleTimes: user.battleTimes +3 })
+    }
+  })
 
-  config = conf
   ctx.plugin(pokeGuess)
   ctx.plugin(notice)
 
@@ -1874,7 +1881,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
               .where(row => $.ne(row.id, userArr[0].id))
               .where(row => $.lte(row.level, Number(userArr[0].level) + 10))
               .where(row => $.gte(row.level, Number(userArr[0].level) - 10))
-              .where(row => $.or($.lte(row.relex, new Date(battlenow - 3600000)), $.gt(row.battleTimes, 0)))
+              .where(row => $.gt(row.battleTimes, 0))
               .where(row => $.ne(row.monster_1, '0'))
               .execute()
               
@@ -1905,14 +1912,12 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         }
 
         let tarArr = userId?.substring(0, 5) == 'robot' ? [robot] : await ctx.database.get('pokebattle', { id: userId })
-        const getTimes = ((battlenow - tarArr[0]?.relex.getTime()) / 3600000) > 30 ? 30 : Math.floor((battlenow - tarArr[0]?.relex.getTime()) / 3600000)
         if (session.userId == userId) {
           return (`你不能对自己发动对战`)
         } else if (tarArr.length == 0 || tarArr[0].monster_1 == '0') {
           return (`对方还没有宝可梦`)
         }
-        let battleTimes = (getTimes + tarArr[0].battleTimes - 1) >= 29 ? 29 : getTimes + tarArr[0].battleTimes - 1
-        let relex = ((battlenow - tarArr[0]?.relex.getTime()) / 3600000) > 30 ? new Date(battlenow) : new Date(tarArr[0]?.relex.getTime() + 3600000 * Math.floor(battlenow - tarArr[0]?.relex.getTime()) / 3600000)
+        let battleTimes = tarArr[0].battleTimes - 1
         if (battleTimes < 0) {
           battleTimes = 0
           return `对方的宝可梦还在恢复，无法对战`
@@ -1925,8 +1930,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         await ctx.database.set('pokebattle', { id: userId }, {
           battleTimes: battleTimes,
           base: tarArr[0].base,
-          power: tarArr[0].power,
-          relex: new Date(relex.getTime() + (8 - config.时区) * 3600000)
+          power: tarArr[0].power
         })
         await ctx.database.set('pokebattle', { id: session.userId }, {
           battleToTrainer: { $subtract: [{ $: 'battleToTrainer' }, 1] },
@@ -2153,15 +2157,15 @@ ${skilllist.join('\n')}
       if (userArr[0].trainer.length == 1) return `${h('at', { id: (session.userId) })}你只有一个训练师，无法更换`
       let nameList = `${userArr[0].trainerName.map((item: any, index: number) => `${index + 1}-${item}`).join('\n')}`
       if (!name) {
-        await session.send(`${h('at', { id: (session.userId) })}请输入你想更换的训练师名字\n${nameList}`)
+        await session.send(`${h('at', { id: (session.userId) })}请选择你想更换的训练师名字\n${nameList}`)
         const choose = await session.prompt(20000)
         if (!choose) return `${h('at', { id: (session.userId) })}你好像还在犹豫，一会再换吧`
         if (isNaN(Number(choose)) || Number(choose) > userArr[0].trainer.length) return `${h('at', { id: (session.userId) })}输入错误`
         let newTrainer = moveToFirst(userArr[0].trainer, userArr[0].trainer[Number(choose) - 1])
         let newTrainerName = moveToFirst(userArr[0].trainerName, userArr[0].trainerName[Number(choose) - 1])
         await ctx.database.set('pokebattle', { id: session.userId }, {
-          trainer: newTrainer,
-          trainerName: newTrainerName
+          trainer: userArr[0].trainer,
+          trainerName: userArr[0].trainerName
         })
         return `${h('at', { id: (session.userId) })}成功更换了训练师${h.image(pathToFileURL(resolve(__dirname, './assets/img/trainer', newTrainer[0] + '.png')).href)}`
       }
@@ -2170,8 +2174,8 @@ ${skilllist.join('\n')}
         let newTrainer = moveToFirst(userArr[0].trainer, userArr[0].trainer[distance])
         let newTrainerName = moveToFirst(userArr[0].trainerName, name)
         await ctx.database.set('pokebattle', { id: session.userId }, {
-          trainer: newTrainer,
-          trainerName: newTrainerName
+          trainer: userArr[0].trainer,
+          trainerName: userArr[0].trainerName
         })
         return `${h('at', { id: (session.userId) })}成功更换了训练师${h.image(pathToFileURL(resolve(__dirname, './assets/img/trainer', newTrainer[0] + '.png')).href)}`
       }
