@@ -1877,6 +1877,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
               .where(row => $.or($.lte(row.relex, new Date(battlenow - 3600000)), $.gt(row.battleTimes, 0)))
               .where(row => $.ne(row.monster_1, '0'))
               .execute()
+              
             if (randomID.length == 0) {
               robot = new Robot(userArr[0].level)
               userId = robot.id
@@ -1904,14 +1905,14 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         }
 
         let tarArr = userId?.substring(0, 5) == 'robot' ? [robot] : await ctx.database.get('pokebattle', { id: userId })
-        const getTimes = ((battlenow - new Date(tarArr[0]?.relex).getTime()) / 3600000) > 30 ? 30 : Math.floor((battlenow - new Date(tarArr[0]?.relex).getTime()) / 3600000)
+        const getTimes = ((battlenow - tarArr[0]?.relex.getTime()) / 3600000) > 30 ? 30 : Math.floor((battlenow - tarArr[0]?.relex.getTime()) / 3600000)
         if (session.userId == userId) {
           return (`你不能对自己发动对战`)
         } else if (tarArr.length == 0 || tarArr[0].monster_1 == '0') {
           return (`对方还没有宝可梦`)
         }
         let battleTimes = (getTimes + tarArr[0].battleTimes - 1) >= 29 ? 29 : getTimes + tarArr[0].battleTimes - 1
-        let relex = ((battlenow - new Date(tarArr[0]?.relex).getTime()) / 3600000) > 30 ? new Date(battlenow) : new Date((new Date(tarArr[0]?.relex)).getTime() + 3600000 * Math.floor(battlenow - new Date(tarArr[0]?.relex).getTime()) / 3600000)
+        let relex = ((battlenow - tarArr[0]?.relex.getTime()) / 3600000) > 30 ? new Date(battlenow) : new Date(tarArr[0]?.relex.getTime() + 3600000 * Math.floor(battlenow - tarArr[0]?.relex.getTime()) / 3600000)
         if (battleTimes < 0) {
           battleTimes = 0
           return `对方的宝可梦还在恢复，无法对战`
