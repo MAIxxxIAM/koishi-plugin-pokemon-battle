@@ -1,4 +1,4 @@
-import { Schema, h, $, Context, is } from 'koishi'
+import { Schema, h, $, Context, is, Session } from 'koishi'
 import pokemonCal from './utils/pokemon'
 import * as pokeGuess from './pokeguess'
 import { } from 'koishi-plugin-cron'
@@ -21,6 +21,8 @@ import { Pokedex } from './pokedex/pokedex'
 import { pokebattle } from './battle/pvp'
 import { Pokebattle, model } from './model'
 
+import Censor from '@koishijs/censor'
+
 
 
 
@@ -28,7 +30,8 @@ import { Pokebattle, model } from './model'
 export const name = 'pokemon-battle'
 
 export const inject = {
-  required: ['database', 'downloads', 'canvas', 'cron']
+  required: ['database', 'downloads', 'canvas', 'cron'],
+  optional: ['censor']
 }
 
 export const usage = `
@@ -63,6 +66,7 @@ export interface Config {
   签到获得个数: number
   战斗详情是否渲染图片: boolean
   是否开启友链: boolean
+  是否开启文本审核: boolean
   精灵球定价: number
   训练师定价: number
   扭蛋币定价: number
@@ -98,6 +102,7 @@ export const Config = Schema.intersect([
     放生指令别名: Schema.string().default('放生'),
     指令使用日志: Schema.boolean().default(false).description('是否输出指令使用日志'),
     是否开启友链: Schema.boolean().default(false).description('是否开启友链'),
+    是否开启文本审核: Schema.boolean().default(false).description('是否开启文本审核'),
     战斗详情是否渲染图片: Schema.boolean().default(false),
     时区: Schema.number().default(8).description('中国时区为8，其他时区请自行调整'),
   }),
@@ -153,6 +158,14 @@ export let config: Config
 
 export async function apply(ctx, conf: Config) {
   config = conf
+
+  if (config.是否开启文本审核) {
+    ctx.on('before-send', async (session:Session) => {
+      const a = await ctx.censor.transform(session.event.message.elements)
+      session.event.message.elements = a
+    })
+  }
+
   model(ctx)
 
   ctx.cron('0 0 * * *', async () => {
@@ -166,7 +179,7 @@ export async function apply(ctx, conf: Config) {
     const relex = await ctx.database.get('pokebattle', { battleTimes: { $lt: 30 } })
     for (let i = 0; i < relex.length; i++) {
       const user = relex[i]
-      await ctx.database.set('pokebattle', { id: user.id }, { battleTimes: user.battleTimes +3 })
+      await ctx.database.set('pokebattle', { id: user.id }, { battleTimes: user.battleTimes + 3 })
     }
   })
 
@@ -1788,7 +1801,7 @@ ${(h('at', { id: (session.userId) }))}
       }
       if (platform == 'qq' && config.QQ官方使用MD) {
         try {
-          const src = await toUrl(ctx,`${config.图片源}/fusion/${img.split('.')[0]}/${img}.png`)
+          const src = await toUrl(ctx, `${config.图片源}/fusion/${img.split('.')[0]}/${img}.png`)
           await session.bot.internal.sendMessage(session.guildId, {
             content: "111",
             msg_type: 2,
@@ -1884,7 +1897,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
               .where(row => $.gt(row.battleTimes, 0))
               .where(row => $.ne(row.monster_1, '0'))
               .execute()
-              
+
             if (randomID.length == 0) {
               robot = new Robot(userArr[0].level)
               userId = robot.id
