@@ -1,8 +1,9 @@
-import { Context } from "koishi"
+import { $, Context, Session } from "koishi"
 import { Pokedex } from "../pokedex/pokedex"
 import { PokemonPower, Skill } from "../battle"
 import pokemonCal from "../utils/pokemon"
 import { PVP } from "../battle/pvp"
+import { config } from ".."
 
 
 declare module 'koishi' {
@@ -10,7 +11,35 @@ declare module 'koishi' {
         'pokemon.battleSlot': BattleSlot
         'pokebattle': Pokebattle
         'pokemon.notice': PNotice
+        'pokemon.resourceLimit': Resource
     }
+}
+
+export class PrivateResource {
+    goldLimit: number
+    constructor(gold: number) {
+        this.goldLimit = gold
+    }
+    async getGold(ctx: Context, gold: number, userId:string){
+        if (this.goldLimit >= gold) {
+            this.goldLimit = this.goldLimit - gold
+        } else {
+            gold = this.goldLimit
+            this.goldLimit = 0
+        }
+        await ctx.database.set('pokemon.resourceLimit', {id:userId}, {rankScore: 0, resource: this })
+
+        await ctx.database.set('pokebattle', {id:userId}, (data) => ({
+            gold: $.add(data.gold, gold)
+        }))
+        return gold
+    }
+}
+
+export interface Resource {
+    id: string
+    rankScore: number
+    resource: PrivateResource
 }
 
 export class Pokemon {
@@ -64,7 +93,7 @@ export interface BattleSlot {
 }
 
 export interface PNotice {
-    id:number
+    id: number
     date: Date
     notice: string
 }
@@ -142,6 +171,18 @@ export async function model(ctx: Context) {
         notice: 'string'
     }, {
         autoInc: true,
+        primary: "id"
+    })
+
+    ctx.model.extend('pokemon.resourceLimit', {
+        id: 'string',
+        rankScore: 'unsigned',
+        resource: {
+            type: 'json',
+            initial: new PrivateResource(config.金币获取上限),
+            nullable: false,
+        },
+    }, {
         primary: "id"
     })
 }

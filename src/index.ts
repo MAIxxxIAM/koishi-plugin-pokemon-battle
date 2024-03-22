@@ -2,7 +2,7 @@ import { Schema, h, $, Context, is, Session } from 'koishi'
 import pokemonCal from './utils/pokemon'
 import * as pokeGuess from './pokeguess'
 import { } from 'koishi-plugin-cron'
-import { button, catchbutton, findItem, getPic, getRandomName, is12to14, moveToFirst, toUrl, urlbutton, getType, isVip } from './utils/mothed'
+import { button, catchbutton, findItem, getPic, getRandomName, moveToFirst, toUrl, urlbutton, getType, isVip, isResourceLimit } from './utils/mothed'
 import { pathToFileURL } from 'url'
 import { resolve } from 'path'
 import * as fs from 'fs'
@@ -19,9 +19,7 @@ import { Robot } from './utils/robot'
 import { expToLv, expBase, skillMachine } from './utils/data'
 import { Pokedex } from './pokedex/pokedex'
 import { pokebattle } from './battle/pvp'
-import { Pokebattle, model } from './model'
-
-import Censor from '@koishijs/censor'
+import { Pokebattle, PrivateResource, model } from './model'
 
 
 
@@ -64,9 +62,9 @@ export interface Config {
   查看信息指令别名: string
   放生指令别名: string
   签到获得个数: number
-  战斗详情是否渲染图片: boolean
   是否开启友链: boolean
   是否开启文本审核: boolean
+  金币获取上限: number
   精灵球定价: number
   训练师定价: number
   扭蛋币定价: number
@@ -89,7 +87,6 @@ export interface Config {
   key9: string
   key10: string
   bot邀请链接: string
-  时区: number
 }
 
 export const Config = Schema.intersect([
@@ -103,18 +100,24 @@ export const Config = Schema.intersect([
     指令使用日志: Schema.boolean().default(false).description('是否输出指令使用日志'),
     是否开启友链: Schema.boolean().default(false).description('是否开启友链'),
     是否开启文本审核: Schema.boolean().default(false).description('是否开启文本审核'),
-    战斗详情是否渲染图片: Schema.boolean().default(false),
-    时区: Schema.number().default(8).description('中国时区为8，其他时区请自行调整'),
   }),
   Schema.object({
     图片源: Schema.union([
-      Schema.const('https://gitee.com/maikama/pokemon-fusion-image/raw/master').default('https://gitee.com/maikama/pokemon-fusion-image/raw/master').description('gitee'),
-      Schema.const('https://raw.githubusercontent.com/MAIxxxIAM/pokemonFusionImage/main').default('https://raw.githubusercontent.com/MAIxxxIAM/pokemonFusionImage/main').description('github'),
+      Schema.string().default('https://gitee.com/maikama/pokemon-fusion-image/raw/master').description('gitee'),
+      Schema.string().default('https://raw.githubusercontent.com/MAIxxxIAM/pokemonFusionImage/main').description('github'),
       Schema.string().description('本地图床').default('127.0.0.1:5020/i'),
-    ]).description('图片源'),
+    ]).description(`
+图片下载地址：
+
+gitee:https://gitee.com/maikama/pokemon-fusion-image
+github:https://github.com/MAIxxxIAM/pokemonFusionImage
+
+**使用pptr提供的canvas服务时，需在本地路径前加file://**
+`),
   }),
   Schema.object({
     签到获得个数: Schema.number().default(2),
+    金币获取上限: Schema.number().default(300000),
     精灵球定价: Schema.number().default(800),
     训练师定价: Schema.number().default(10000),
     扭蛋币定价: Schema.number().default(1500),
@@ -160,7 +163,7 @@ export async function apply(ctx, conf: Config) {
   config = conf
 
   if (config.是否开启文本审核) {
-    ctx.on('before-send', async (session:Session) => {
+    ctx.on('before-send', async (session: Session) => {
       const a = await ctx.censor.transform(session.event.message.elements)
       session.event.message.elements = a
     })
@@ -180,6 +183,14 @@ export async function apply(ctx, conf: Config) {
     for (let i = 0; i < relex.length; i++) {
       const user = relex[i]
       await ctx.database.set('pokebattle', { id: user.id }, { battleTimes: user.battleTimes + 3 })
+    }
+  })
+
+  ctx.cron('0 0 * * 1,4', async () => {
+    const limit=await ctx.database.get('pokemon.resourceLimit')
+    for (let i = 0; i < limit.length; i++) {
+      const user = limit[i]
+      await ctx.database.set('pokebattle', { id: user.id }, {resource:new PrivateResource(config.金币获取上限)})
     }
   })
 
@@ -387,6 +398,7 @@ export async function apply(ctx, conf: Config) {
     .action(async ({ session }) => {
       const { platform } = session
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
+      await isResourceLimit(session.userId,ctx)
       const vip = isVip(userArr[0])
       const vipReward = vip ? 1.5 : 1
       const vipRGold = vip ? 3000 : 0
@@ -1706,9 +1718,11 @@ ${(h('at', { id: (session.userId) }))}`
         let expNew = pokemonCal.expCal(userArr[0].level, userArr[0].exp + expGet)[1]
         let getGold = userArr[0].level > 99 ? Math.floor(pokemonCal.mathRandomInt(350, 500) * vipReward) : 0
         let lvNew = pokemonCal.expCal(userArr[0].level, userArr[0].exp + expGet)[0]
+        const resource = await isResourceLimit(session.userId, ctx)
+        const rLimit = new PrivateResource(resource.resource.goldLimit)
+       getGold= await rLimit.getGold(ctx, getGold, session.userId)
         await ctx.database.set('pokebattle', { id: session.userId }, {
           AllMonster: userArr[0].AllMonster,
-          gold: userArr[0].gold + getGold,
           level: lvNew,
           exp: expNew,
           power: pokemonCal.power(pokemonCal.pokeBase(userArr[0].monster_1), lvNew),
@@ -1947,7 +1961,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         })
         await ctx.database.set('pokebattle', { id: session.userId }, {
           battleToTrainer: { $subtract: [{ $: 'battleToTrainer' }, 1] },
-          gold: { $subtract: [{ $: 'gold' }, userVip ? 250 : 500] },
+          gold: { $subtract: [{ $: 'gold' }, userVip ? 249 : 500] },
         })
         await session.send(`${userVip ? '你支付了会员价249' : '你支付了500'}金币，请稍等，正在发动了宝可梦对战`)
         if (tarArr[0].battleTimes == 0) {
@@ -1963,6 +1977,20 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         let getgold = pokemonCal.mathRandomInt(1000, 1500)
         let losegold = pokemonCal.mathRandomInt(getgold - 300, getgold) + (isVip(loserArr[0]) ? 500 : 0)
         getgold = getgold + (isVip(winnerArr[0]) ? 500 : 0)
+        /* 金币上限 */
+        if(winner.substring(0, 5) !== 'robot'){
+        const resource = await isResourceLimit(winner, ctx)
+        const rLimit = new PrivateResource(resource.resource.goldLimit)
+       getgold= await rLimit.getGold(ctx, getgold, winner)
+      }
+
+        if (loserArr[0].level > 99&&loser.substring(0, 5) !== 'robot') {
+          const loseResource = await isResourceLimit(loser, ctx)
+          const loseRLimit = new PrivateResource(loseResource.resource.goldLimit)
+         losegold= await loseRLimit.getGold(ctx, getgold, loser)
+        }
+
+
         const winName = isVip(winnerArr[0]) ? "[💎VIP]" : ''
         const loseName = isVip(loserArr[0]) ? "[💎VIP]" : ''
         let expGet = loserArr[0]?.level > 99 ? 0 : Math.floor((isVip(loserArr[0]) ? 1.5 : 1) * loserArr[0].level * Number(expBase.exp[(Number(winnerArr[0].monster_1.split('.')[0]) > Number(winnerArr[0].monster_1.split('.')[1]) ? Number(winnerArr[0].monster_1.split('.')[1]) : Number(winnerArr[0].monster_1.split('.')[0])) - 1].expbase) / 7)
@@ -1972,17 +2000,11 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         let expNew = pokemonCal.expCal(loserArr[0].level, loserArr[0].exp + expGet)[1]
         let lvNew = pokemonCal.expCal(loserArr[0].level, loserArr[0].exp + expGet)[0]
         losergold += `${loseName + (loserArr[0].name || loserArr[0].battlename)}输了\r等级:lv.${lvNew}` + ((loserArr[0].level > 99) ? `\r金币：+${losegold}` : `\r经验：+${expGet}`)
-        await ctx.database.set('pokebattle', { id: winner }, {
-          gold: { $add: [{ $: 'gold' }, getgold] },
-        })
-        const loserget = (loserArr[0].level > 99) ? {
-          gold: { $add: [{ $: 'gold' }, losegold] }
-        } : {
+        await ctx.database.set('pokebattle', { id: loser }, {
           level: lvNew,
           exp: expNew,
           power: pokemonCal.power(pokemonCal.pokeBase(loserArr[0].monster_1), lvNew),
-        }
-        await ctx.database.set('pokebattle', { id: loser }, loserget)
+        })
         if (session.platform == 'qq' && config.QQ官方使用MD) {
           await session.bot.internal.sendMessage(session.guildId, {
             content: "111",
@@ -2089,8 +2111,10 @@ ${jli}`
         }
         skilllist.push(skillMachine.skill[getskill].skill)
       }
+      const resource = await isResourceLimit(session.userId, ctx)
+      const rLimit = new PrivateResource(resource.resource.goldLimit)
+      getgold= await rLimit.getGold(ctx, getgold,session.userId)
       await ctx.database.set('pokebattle', { id: session.userId }, {
-        gold: { $add: [{ $: 'gold' }, getgold] },
         skillbag: userArr[0].skillbag
       })
       await session.send(`${h('at', { id: (session.userId) })}\u200b

@@ -1,7 +1,8 @@
 import { h } from "koishi"
 import { config } from ".."
-import { button, is12to14, isVip, toUrl } from "../utils/mothed"
+import { button, isResourceLimit, isVip, toUrl } from "../utils/mothed"
 import { PokeGuess } from "./pokeguess"
+import { PrivateResource } from "../model"
 
 
 
@@ -11,17 +12,6 @@ export async function  apply ( ctx ) {
         
     ctx.command('宝可梦').subcommand('宝可问答', '回答问题，获得奖励')
     .action(async ({session}) => {
-        if (!is12to14()) return `\u200b
-====================
-  现在不是答题时间哦
-====================
-     答题时间
-  每天中午12-14点
-   晚上19点-21点
-====================
-  答对问题可以获得
-   体力或者金币
-====================`
         const q= new PokeGuess()
         const qImage = await q.q(ctx)
         const aImage = await q.a(ctx)
@@ -86,6 +76,7 @@ ${h('image', { url:qImage})}
 回复机器人输入答案序号或者答案文字`)
         }
         const answer = await session.prompt(60000)
+        console.log(answer)
         if (!answer) {
             try {
                 await session.send(`时间到，答题结束`)
@@ -137,11 +128,11 @@ ${h('image', { url:qImage})}
         if (y_n) {
         if (player.battleToTrainer >= config.对战次数+(vip?20:0)) {
           const addgole = 100 + vipRGold + 50 * player.ultramonster.length
+          const resource = await isResourceLimit(session.userId, ctx)
+          const rLimit = new PrivateResource(resource.resource.goldLimit)
+          await rLimit.getGold(ctx, addgole, session.userId)
           player.gold += addgole
-          await ctx.database.set('pokebattle', { id: session.userId}, {
-            gold: { $add: [{ $: 'gold' }, addgole + vipRGold] },
-          })
-          end = `回答正确\r你获得了${100 + vipRGold + 50 * player.ultramonster.length}金币,现在你的体力是满的，回答问题只会获得金币哦~${y}`
+          end = `回答正确\r你获得了${addgole}金币,现在你的体力是满的，回答问题只会获得金币哦~${y}`
         }
         else {
           const addbattle = player.ultramonster.length + 1
@@ -180,10 +171,6 @@ ${h('image', { url:qImage})}
                         values: [end]
                       },
                       {
-                        key: config.key5,
-                        values: [`答案是${right}`]
-                      },
-                      {
                         key: config.key6,
                         values: [`当前体力：${player.battleToTrainer}\r当前金币：${player.gold}`]
                       },
@@ -201,6 +188,11 @@ ${h('image', { url:qImage})}
                 msg_seq: Math.floor(Math.random() * 1000000),
               })
         }catch(e){
+            await session.send(`<@${session.userId}>问答结果：
+${h('image', { url:aImage})}
+${end}
+当前体力：${player.battleToTrainer}\r当前金币：${player.gold}
+`)
         }
     })
 

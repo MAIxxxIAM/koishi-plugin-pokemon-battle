@@ -1,16 +1,18 @@
 import { resolve } from 'path'
 import { Pokebattle,logger,config,shop,testcanvas } from '..'
 import { type,battleType} from './data'
+import { Context } from 'koishi'
 
 
-export function is12to14() {
-  const now = new Date()
-  let hours = now.getUTCHours() + 8
-  if (hours >= 24) {
-    hours -= 24
+export async function isResourceLimit (userId:string,ctx:Context) {
+  const resources = await ctx.database.get('pokemon.resourceLimit',{id:userId})
+  if (resources.length == 0) {
+   return await ctx.database.create('pokemon.resourceLimit',{id:userId})
+  }else{
+    return resources[0]
   }
-  return (hours >= 12 && hours <= 13)||(hours >= 19 && hours <= 20)
 }
+
 export async function getPic(ctx, log, user, tar) {
   try {
     let att: Pokebattle, def: Pokebattle
