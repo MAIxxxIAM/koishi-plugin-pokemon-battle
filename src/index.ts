@@ -19,7 +19,7 @@ import { Robot } from './utils/robot'
 import { expToLv, expBase, skillMachine } from './utils/data'
 import { Pokedex } from './pokedex/pokedex'
 import { pokebattle } from './battle/pvp'
-import { Pokebattle, PrivateResource, model } from './model'
+import { AddGroup, Pokebattle, PrivateResource, model } from './model'
 
 
 
@@ -192,6 +192,30 @@ export async function apply(ctx, conf: Config) {
       const user = limit[i]
       await ctx.database.set('pokebattle', { id: user.id }, { resource: new PrivateResource(config.金币获取上限) })
     }
+  })
+
+  ctx.on('guild-added', async (session) => {
+    const { group_openid, op_member_openid } = session.event._data.d
+    const addGroup: AddGroup[] = await ctx.database.get('pokemon.addGroup', { id: op_member_openid })
+    let a: number
+    if (addGroup.length == 0) {
+      await ctx.database.create('pokemon.addGroup', { id: op_member_openid, addGroup: [group_openid] })
+      a = 10
+      console.log(a)
+    } else {
+      if (addGroup[0].addGroup.includes(group_openid)) {
+        a = 0
+      } else {
+        await ctx.database.set('pokemon.addGroup', { id: op_member_openid }, { addGroup: addGroup[0].addGroup.concat(group_openid) })
+        a = 10
+      }
+      
+    }
+    if(a!==0){
+      const b= await isResourceLimit(op_member_openid, ctx)
+       const resource=new PrivateResource(b.resource.goldLimit)
+       await resource.addGold(ctx, a, op_member_openid)
+     }
   })
 
   ctx.plugin(pokeGuess)
@@ -1464,7 +1488,7 @@ ${(h('at', { id: (session.userId) }))}`
         //图片服务
         const vip = isVip(userArr[0])
         const vipName = vip ? "[💎VIP]" : ''
-
+        const playerLimit=await isResourceLimit(session.userId,ctx)
         const infoId = userArr[0].id.length > 15 ? `${userArr[0].id.slice(0, 3)}...${userArr[0].id.slice(-3)}` : userArr[0].id
         const infoName = userArr[0].name ? userArr[0].name : session.username > 10 ? session.username : infoId
         for (let i = 0; i < userArr[0].AllMonster.length; i++) {
@@ -1550,6 +1574,14 @@ ${(h('at', { id: (session.userId) }))}`
                   {
                     key: config.key5,
                     values: [`宝可梦属性：${getType(userArr[0].monster_1).join(' ')}`]
+                  },
+                  {
+                    key: config.key6,
+                    values: [`你当前的金币上限为${playerLimit.resource.goldLimit}`]
+                  },
+                  {
+                    key: config.key10,
+                    values: [`邀请麦麦子到其他群做客\r就可以增加10w金币的获取上限哦~\rヾ(≧▽≦*)o`]
                   },
                 ]
               },

@@ -12,7 +12,13 @@ declare module 'koishi' {
         'pokebattle': Pokebattle
         'pokemon.notice': PNotice
         'pokemon.resourceLimit': Resource
+        'pokemon.addGroup': AddGroup
     }
+}
+
+export interface AddGroup {
+    id: string
+    addGroup: string[]
 }
 
 export class PrivateResource {
@@ -33,6 +39,10 @@ export class PrivateResource {
             gold: $.add(data.gold, gold)
         }))
         return gold
+    }
+    async addGold(ctx: Context, gold: number, userId:string){
+        this.goldLimit = this.goldLimit + gold*10000
+        await ctx.database.set('pokemon.resourceLimit', {id:userId}, {rankScore: 0, resource: this })
     }
 }
 
@@ -182,6 +192,12 @@ export async function model(ctx: Context) {
             initial: new PrivateResource(config.金币获取上限),
             nullable: false,
         },
+    }, {
+        primary: "id"
+    })
+    ctx.model.extend('pokemon.addGroup', {
+        id: 'string',
+        addGroup: 'list'
     }, {
         primary: "id"
     })
