@@ -18,6 +18,7 @@ declare module 'koishi' {
 
 export interface AddGroup {
     id: string
+    count: number
     addGroup: string[]
 }
 
@@ -42,6 +43,13 @@ export class PrivateResource {
     }
     async addGold(ctx: Context, gold: number, userId:string){
         this.goldLimit = this.goldLimit + gold*10000
+        await ctx.database.set('pokemon.resourceLimit', {id:userId}, {rankScore: 0, resource: this })
+    }
+    async subGold(ctx: Context, gold: number, userId:string){
+        if (this.goldLimit <gold*10000) {
+            this.goldLimit=0
+        }
+        this.goldLimit = this.goldLimit - gold*10000
         await ctx.database.set('pokemon.resourceLimit', {id:userId}, {rankScore: 0, resource: this })
     }
 }
@@ -197,6 +205,11 @@ export async function model(ctx: Context) {
     })
     ctx.model.extend('pokemon.addGroup', {
         id: 'string',
+        count:{
+            type: 'unsigned',
+            initial:3,
+            nullable: false,
+        },
         addGroup: 'list'
     }, {
         primary: "id"

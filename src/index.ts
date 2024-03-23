@@ -172,10 +172,15 @@ export async function apply(ctx, conf: Config) {
   model(ctx)
 
   ctx.cron('0 0 * * *', async () => {
+    const addGroup: AddGroup[] = await ctx.database.get('pokemon.addGroup')
     const vipUser = await ctx.database.get('pokebattle', { vip: { $gt: 0 } })
     for (let i = 0; i < vipUser.length; i++) {
       const user = vipUser[i]
       await ctx.database.set('pokebattle', { id: user.id }, { vip: user.vip - 1 })
+    }
+    for (let i = 0; i < addGroup.length; i++) {
+      const user = addGroup[i]
+      await ctx.database.set('pokemon.addGroup', { id: user.id }, { count: 3 })
     }
   })
   ctx.cron('0 * * * *', async () => {
@@ -203,10 +208,13 @@ export async function apply(ctx, conf: Config) {
       a = 10
       console.log(a)
     } else {
-      if (addGroup[0].addGroup.includes(group_openid)) {
+      if (addGroup[0].addGroup.includes(group_openid)||addGroup[0].count<1) {
         a = 0
       } else {
-        await ctx.database.set('pokemon.addGroup', { id: op_member_openid }, { addGroup: addGroup[0].addGroup.concat(group_openid) })
+        await ctx.database.set('pokemon.addGroup', { id: op_member_openid }, {
+          count: addGroup[0].count - 1,
+           addGroup: addGroup[0].addGroup.concat(group_openid) 
+          })
         a = 10
       }
       
@@ -217,6 +225,30 @@ export async function apply(ctx, conf: Config) {
        await resource.addGold(ctx, a, op_member_openid)
      }
   })
+
+  ctx.on('guild-removed', async (session) => {
+    console.log(session)
+    const { group_openid, op_member_openid } = session.event._data.d
+    const addGroup: AddGroup[] = await ctx.database.get('pokemon.addGroup', { id: op_member_openid })
+    let a: number
+    if (addGroup.length == 0) {
+      return
+    } else {
+      if (!addGroup[0].addGroup.includes(group_openid)) {
+        a = 0
+      } else {
+        a = 10
+      }
+      
+    }
+    if(a!==0){
+      const b= await isResourceLimit(op_member_openid, ctx)
+       const resource=new PrivateResource(b.resource.goldLimit)
+       await resource.subGold(ctx, a, op_member_openid)
+     }
+  })
+
+
 
   ctx.plugin(pokeGuess)
   ctx.plugin(notice)
