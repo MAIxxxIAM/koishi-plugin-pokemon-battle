@@ -187,10 +187,10 @@ export async function apply(ctx, conf: Config) {
   })
 
   ctx.cron('0 0 * * 1,4', async () => {
-    const limit=await ctx.database.get('pokemon.resourceLimit')
+    const limit = await ctx.database.get('pokemon.resourceLimit')
     for (let i = 0; i < limit.length; i++) {
       const user = limit[i]
-      await ctx.database.set('pokebattle', { id: user.id }, {resource:new PrivateResource(config.金币获取上限)})
+      await ctx.database.set('pokebattle', { id: user.id }, { resource: new PrivateResource(config.金币获取上限) })
     }
   })
 
@@ -398,7 +398,7 @@ export async function apply(ctx, conf: Config) {
     .action(async ({ session }) => {
       const { platform } = session
       const userArr = await ctx.database.get('pokebattle', { id: session.userId })
-      await isResourceLimit(session.userId,ctx)
+      await isResourceLimit(session.userId, ctx)
       const vip = isVip(userArr[0])
       const vipReward = vip ? 1.5 : 1
       const vipRGold = vip ? 3000 : 0
@@ -1720,7 +1720,7 @@ ${(h('at', { id: (session.userId) }))}`
         let lvNew = pokemonCal.expCal(userArr[0].level, userArr[0].exp + expGet)[0]
         const resource = await isResourceLimit(session.userId, ctx)
         const rLimit = new PrivateResource(resource.resource.goldLimit)
-       getGold= await rLimit.getGold(ctx, getGold, session.userId)
+        getGold = await rLimit.getGold(ctx, getGold, session.userId)
         await ctx.database.set('pokebattle', { id: session.userId }, {
           AllMonster: userArr[0].AllMonster,
           level: lvNew,
@@ -1978,19 +1978,16 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         let losegold = pokemonCal.mathRandomInt(getgold - 300, getgold) + (isVip(loserArr[0]) ? 500 : 0)
         getgold = getgold + (isVip(winnerArr[0]) ? 500 : 0)
         /* 金币上限 */
-        if(winner.substring(0, 5) !== 'robot'){
-        const resource = await isResourceLimit(winner, ctx)
-        const rLimit = new PrivateResource(resource.resource.goldLimit)
-       getgold= await rLimit.getGold(ctx, getgold, winner)
-      }
-
-        if (loserArr[0].level > 99&&loser.substring(0, 5) !== 'robot') {
+        if (winner.substring(0, 5) !== 'robot') {
+          const resource = await isResourceLimit(winner, ctx)
+          const rLimit = new PrivateResource(resource.resource.goldLimit)
+          getgold = await rLimit.getGold(ctx, getgold, winner)
+        }
+        if (loserArr[0].level > 99 && loser.substring(0, 5) !== 'robot') {
           const loseResource = await isResourceLimit(loser, ctx)
           const loseRLimit = new PrivateResource(loseResource.resource.goldLimit)
-         losegold= await loseRLimit.getGold(ctx, getgold, loser)
+          losegold = await loseRLimit.getGold(ctx, losegold, loser)
         }
-
-
         const winName = isVip(winnerArr[0]) ? "[💎VIP]" : ''
         const loseName = isVip(loserArr[0]) ? "[💎VIP]" : ''
         let expGet = loserArr[0]?.level > 99 ? 0 : Math.floor((isVip(loserArr[0]) ? 1.5 : 1) * loserArr[0].level * Number(expBase.exp[(Number(winnerArr[0].monster_1.split('.')[0]) > Number(winnerArr[0].monster_1.split('.')[1]) ? Number(winnerArr[0].monster_1.split('.')[1]) : Number(winnerArr[0].monster_1.split('.')[0])) - 1].expbase) / 7)
@@ -2113,7 +2110,7 @@ ${jli}`
       }
       const resource = await isResourceLimit(session.userId, ctx)
       const rLimit = new PrivateResource(resource.resource.goldLimit)
-      getgold= await rLimit.getGold(ctx, getgold,session.userId)
+      getgold = await rLimit.getGold(ctx, getgold, session.userId)
       await ctx.database.set('pokebattle', { id: session.userId }, {
         skillbag: userArr[0].skillbag
       })
