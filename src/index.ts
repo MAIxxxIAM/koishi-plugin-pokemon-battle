@@ -117,7 +117,7 @@ github:https://github.com/MAIxxxIAM/pokemonFusionImage
   }),
   Schema.object({
     签到获得个数: Schema.number().default(2),
-    金币获取上限: Schema.number().default(300000),
+    金币获取上限: Schema.number().default(100000),
     精灵球定价: Schema.number().default(800),
     训练师定价: Schema.number().default(10000),
     扭蛋币定价: Schema.number().default(1500),
@@ -174,6 +174,11 @@ export async function apply(ctx, conf: Config) {
   ctx.cron('0 0 * * *', async () => {
     const addGroup: AddGroup[] = await ctx.database.get('pokemon.addGroup')
     const vipUser = await ctx.database.get('pokebattle', { vip: { $gt: 0 } })
+    const limit = await ctx.database.get('pokemon.resourceLimit')
+    for (let i = 0; i < limit.length; i++) {
+      const user = limit[i]
+      await ctx.database.set('pokebattle', { id: user.id }, { resource: new PrivateResource(config.金币获取上限) })
+    }
     for (let i = 0; i < vipUser.length; i++) {
       const user = vipUser[i]
       await ctx.database.set('pokebattle', { id: user.id }, { vip: user.vip - 1 })
@@ -183,19 +188,13 @@ export async function apply(ctx, conf: Config) {
       await ctx.database.set('pokemon.addGroup', { id: user.id }, { count: 3 })
     }
   })
+
+
   ctx.cron('0 * * * *', async () => {
-    const relex = await ctx.database.get('pokebattle', { battleTimes: { $lt: 30 } })
+    const relex = await ctx.database.get('pokebattle', { battleTimes: { $lt: 27 } })
     for (let i = 0; i < relex.length; i++) {
       const user = relex[i]
       await ctx.database.set('pokebattle', { id: user.id }, { battleTimes: user.battleTimes + 3 })
-    }
-  })
-
-  ctx.cron('0 0 * * 1,4', async () => {
-    const limit = await ctx.database.get('pokemon.resourceLimit')
-    for (let i = 0; i < limit.length; i++) {
-      const user = limit[i]
-      await ctx.database.set('pokebattle', { id: user.id }, { resource: new PrivateResource(config.金币获取上限) })
     }
   })
 
@@ -205,47 +204,25 @@ export async function apply(ctx, conf: Config) {
     let a: number
     if (addGroup.length == 0) {
       await ctx.database.create('pokemon.addGroup', { id: op_member_openid, addGroup: [group_openid] })
-      a = 10
+      a = 3
       console.log(a)
     } else {
-      if (addGroup[0].addGroup.includes(group_openid)||addGroup[0].count<1) {
+      if (addGroup[0].addGroup.includes(group_openid) || addGroup[0].count < 1) {
         a = 0
       } else {
         await ctx.database.set('pokemon.addGroup', { id: op_member_openid }, {
           count: addGroup[0].count - 1,
-           addGroup: addGroup[0].addGroup.concat(group_openid) 
-          })
-        a = 10
+          addGroup: addGroup[0].addGroup.concat(group_openid)
+        })
+        a = 3
       }
-      
-    }
-    if(a!==0){
-      const b= await isResourceLimit(op_member_openid, ctx)
-       const resource=new PrivateResource(b.resource.goldLimit)
-       await resource.addGold(ctx, a, op_member_openid)
-     }
-  })
 
-  ctx.on('guild-removed', async (session) => {
-    console.log(session)
-    const { group_openid, op_member_openid } = session.event._data.d
-    const addGroup: AddGroup[] = await ctx.database.get('pokemon.addGroup', { id: op_member_openid })
-    let a: number
-    if (addGroup.length == 0) {
-      return
-    } else {
-      if (!addGroup[0].addGroup.includes(group_openid)) {
-        a = 0
-      } else {
-        a = 10
-      }
-      
     }
-    if(a!==0){
-      const b= await isResourceLimit(op_member_openid, ctx)
-       const resource=new PrivateResource(b.resource.goldLimit)
-       await resource.subGold(ctx, a, op_member_openid)
-     }
+    if (a !== 0) {
+      const b = await isResourceLimit(op_member_openid, ctx)
+      const resource = new PrivateResource(b.resource.goldLimit)
+      await resource.addGold(ctx, a, op_member_openid)
+    }
   })
 
 
@@ -1520,7 +1497,7 @@ ${(h('at', { id: (session.userId) }))}`
         //图片服务
         const vip = isVip(userArr[0])
         const vipName = vip ? "[💎VIP]" : ''
-        const playerLimit=await isResourceLimit(session.userId,ctx)
+        const playerLimit = await isResourceLimit(session.userId, ctx)
         const infoId = userArr[0].id.length > 15 ? `${userArr[0].id.slice(0, 3)}...${userArr[0].id.slice(-3)}` : userArr[0].id
         const infoName = userArr[0].name ? userArr[0].name : session.username > 10 ? session.username : infoId
         for (let i = 0; i < userArr[0].AllMonster.length; i++) {
@@ -1613,7 +1590,7 @@ ${(h('at', { id: (session.userId) }))}`
                   },
                   {
                     key: config.key10,
-                    values: [`邀请麦麦子到其他群做客\r就可以增加10w金币的获取上限哦~\rヾ(≧▽≦*)o`]
+                    values: [`邀请麦麦子到其他群做客\r就可以增加3w金币获取上限哦~\rヾ(≧▽≦*)o`]
                   },
                 ]
               },

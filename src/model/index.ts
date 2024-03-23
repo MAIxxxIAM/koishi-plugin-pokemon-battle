@@ -48,6 +48,7 @@ export class PrivateResource {
     async subGold(ctx: Context, gold: number, userId:string){
         if (this.goldLimit <gold*10000) {
             this.goldLimit=0
+            return
         }
         this.goldLimit = this.goldLimit - gold*10000
         await ctx.database.set('pokemon.resourceLimit', {id:userId}, {rankScore: 0, resource: this })
