@@ -40,7 +40,7 @@ export async function  apply ( ctx ) {
                     },
                     {
                       key: config.key3,
-                      values: [await toUrl(ctx,qImage)]
+                      values: [await toUrl(ctx,session,qImage)]
                     },
                     {
                       key: config.key4,
@@ -164,7 +164,7 @@ ${h('image', { url:qImage})}
                       },
                       {
                         key: config.key3,
-                        values: [await toUrl(ctx,aImage)]
+                        values: [await toUrl(ctx,session,aImage)]
                       },
                       {
                         key: config.key4,

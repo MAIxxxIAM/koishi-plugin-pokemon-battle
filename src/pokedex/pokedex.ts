@@ -111,7 +111,7 @@ export async function apply(ctx) {
                         },
                         {
                             key: config.key3,
-                            values: [await toUrl(ctx, src)]
+                            values: [await toUrl(ctx,session, src)]
                         }
                     ]
                 },
@@ -173,7 +173,7 @@ export async function apply(ctx) {
                                 },
                                 {
                                     key: config.key3,
-                                    values: [await toUrl(ctx, `${(pokemonCal.pokemomPic(poke, false)).toString().match(/src="([^"]*)"/)[1]}`)]
+                                    values: [await toUrl(ctx,session, `${(pokemonCal.pokemomPic(poke, false)).toString().match(/src="([^"]*)"/)[1]}`)]
                                 },
                                 {
                                     key: config.key4,
@@ -242,7 +242,7 @@ export async function apply(ctx) {
                                 },
                                 {
                                     key: config.key3,
-                                    values: [await toUrl(ctx, src)]
+                                    values: [await toUrl(ctx,session, src)]
                                 },
                                 {
                                     key: config.key4,

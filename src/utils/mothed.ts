@@ -1,7 +1,7 @@
 import { resolve } from 'path'
 import { Pokebattle,logger,config,shop,testcanvas } from '..'
 import { type,battleType} from './data'
-import { Context } from 'koishi'
+import { Context, Session } from 'koishi'
 
 
 export async function isResourceLimit (userId:string,ctx:Context) {
@@ -76,7 +76,22 @@ export function moveToFirst(array: any[], element: any) {
   }
   return array
 }
-export async function toUrl(ctx, img) {
+export async function toUrl(ctx,session,img) {
+  // if(ctx.get('server.temp')?.upload){
+  //   const url = await ctx.get('server.temp').upload(img)
+  //   return url.replace(/_/g, "%5F")
+  // }
+  // const { url } = await ctx.get('server.temp').create(img)
+  // return url
+  try{
+    let a = await session.bot.internal.sendFileGuild(session.channelId,{
+    file_type: 1,
+    file_data:Buffer.from((await ctx.http.file(img)).data).toString('base64'),
+    srv_send_msg:false
+  })
+  const url=`http://multimedia.nt.qq.com/download?appid=1407&fileid=${a.file_uuid.replace(/_/g, "%5F")}&rkey=CAQSKAB6JWENi5LMtWVWVxS2RfZbDwvOdlkneNX9iQFbjGK7q7lbRPyD1v0&spec=0`
+  return url
+}catch(e){
   if(ctx.get('server.temp')?.upload){
     const url = await ctx.get('server.temp').upload(img)
     return url.replace(/_/g, "%5F")
@@ -84,7 +99,7 @@ export async function toUrl(ctx, img) {
   const { url } = await ctx.get('server.temp').create(img)
   return url
 }
-
+}
 export function typeEffect(a:string,b:string,skillType:string){
   const [a1,a2] = getType(a)
   const [b1,b2] = getType(b)

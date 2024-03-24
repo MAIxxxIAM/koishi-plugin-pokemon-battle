@@ -111,7 +111,7 @@ switch(inTwo){
     let mdStr:string[]=[]
     for(let poke in ultra){
       if(ultra[poke]==null) continue
-      const img=await toUrl(ctx,`${config.图片源}/sr/${poke.split('.')[0]}.png`)
+      const img=await toUrl(ctx,session,`${config.图片源}/sr/${poke.split('.')[0]}.png`)
       str.push(`\u200b
 ${pokemonCal.pokemonlist(poke)}的收集度是${ultra[poke]}0% ${'🟩'.repeat(Math.floor(ultra[poke]/2))+'🟨'.repeat(ultra[poke]%2)+ '⬜⬜⬜⬜⬜'.substring(Math.round(ultra[poke]/2))}`)
       mdStr.push(`${pokemonCal.pokemonlist(poke)} : ${ultra[poke]}0%  ${'🟩'.repeat(Math.floor(ultra[poke]/2))+'🟨'.repeat(ultra[poke]%2)+ '⬜⬜⬜⬜⬜'.substring(Math.round(ultra[poke]/2))}`)

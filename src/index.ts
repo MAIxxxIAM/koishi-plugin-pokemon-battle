@@ -172,30 +172,22 @@ export async function apply(ctx, conf: Config) {
   model(ctx)
 
   ctx.cron('0 0 * * *', async () => {
-    const addGroup: AddGroup[] = await ctx.database.get('pokemon.addGroup')
-    const vipUser = await ctx.database.get('pokebattle', { vip: { $gt: 0 } })
-    const limit = await ctx.database.get('pokemon.resourceLimit')
-    for (let i = 0; i < limit.length; i++) {
-      const user = limit[i]
-      await ctx.database.set('pokebattle', { id: user.id }, { resource: new PrivateResource(config.金币获取上限) })
-    }
-    for (let i = 0; i < vipUser.length; i++) {
-      const user = vipUser[i]
-      await ctx.database.set('pokebattle', { id: user.id }, { vip: user.vip - 1 })
-    }
-    for (let i = 0; i < addGroup.length; i++) {
-      const user = addGroup[i]
-      await ctx.database.set('pokemon.addGroup', { id: user.id }, { count: 3 })
-    }
+    await ctx.database.set('pokemon.addGroup',{},row=>({
+      count: 3
+    }))
+    await ctx.database.set('pokebattle', { vip: { $gt: 0 } },row=>({
+      vip: $.sub(row.vip,1)
+    }))
+  await ctx.database.set('pokemon.resourceLimit',{},row=>({
+    resource:new PrivateResource(config.金币获取上限) 
+  }))
   })
 
 
   ctx.cron('0 * * * *', async () => {
-    const relex = await ctx.database.get('pokebattle', { battleTimes: { $lt: 27 } })
-    for (let i = 0; i < relex.length; i++) {
-      const user = relex[i]
-      await ctx.database.set('pokebattle', { id: user.id }, { battleTimes: user.battleTimes + 3 })
-    }
+    await ctx.database.get('pokebattle', { battleTimes: { $lt: 27 } },row=>({
+      battleTimes: $.add(row.battleTimes,3)
+    }))
   })
 
   ctx.on('guild-added', async (session) => {
@@ -369,7 +361,7 @@ export async function apply(ctx, conf: Config) {
               },
               {
                 key: config.key3,
-                values: [await toUrl(ctx, `file://${imgurl}`)]
+                values: [await toUrl(ctx,session, `file://${imgurl}`)]
               },
             ]
           },
@@ -566,7 +558,7 @@ export async function apply(ctx, conf: Config) {
                     },
                     {
                       key: config.key3,
-                      values: [await toUrl(ctx, src)]
+                      values: [await toUrl(ctx,session, src)]
                     },
                     {
                       key: config.key4,
@@ -684,7 +676,7 @@ export async function apply(ctx, conf: Config) {
                   },
                   {
                     key: config.key3,
-                    values: [await toUrl(ctx, src)]
+                    values: [await toUrl(ctx,session, src)]
                   },
                 ]
               },
@@ -831,7 +823,7 @@ export async function apply(ctx, conf: Config) {
                     },
                     {
                       key: config.key3,
-                      values: [await toUrl(ctx, src)]
+                      values: [await toUrl(ctx,session, src)]
                     },
                     {
                       key: config.key4,
@@ -959,7 +951,7 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
                       },
                       {
                         key: config.key3,
-                        values: [await toUrl(ctx, `${(pokemonCal.pokemomPic(poke, false)).toString().match(/src="([^"]*)"/)[1]}`)]
+                        values: [await toUrl(ctx,session, `${(pokemonCal.pokemomPic(poke, false)).toString().match(/src="([^"]*)"/)[1]}`)]
                       },
                       {
                         key: config.key5,
@@ -1013,7 +1005,7 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
                     },
                     {
                       key: config.key3,
-                      values: [await toUrl(ctx, `${(pokemonCal.pokemomPic(poke, false)).toString().match(/src="([^"]*)"/)[1]}`)]
+                      values: [await toUrl(ctx,session, `${(pokemonCal.pokemomPic(poke, false)).toString().match(/src="([^"]*)"/)[1]}`)]
                     },
                     userArr[0].lapTwo ? {
                       key: config.key4,
@@ -1100,7 +1092,7 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
                       },
                       {
                         key: config.key3,
-                        values: [await toUrl(ctx, src)]
+                        values: [await toUrl(ctx,session, src)]
                       },
                       {
                         key: config.key4,
@@ -1230,7 +1222,7 @@ ${(h('at', { id: (session.userId) }))}
                   },
                   {
                     key: config.key3,
-                    values: [await toUrl(ctx, src)]
+                    values: [await toUrl(ctx,session, src)]
                   },
                   {
                     key: config.key10,
@@ -1342,7 +1334,7 @@ ${(h('at', { id: (session.userId) }))}
                         },
                         {
                           key: config.key3,
-                          values: [await toUrl(ctx, src)]
+                          values: [await toUrl(ctx,session, src)]
                         },
                         {
                           key: config.key4,
@@ -1574,7 +1566,7 @@ ${(h('at', { id: (session.userId) }))}`
                   },
                   {
                     key: config.key3,
-                    values: [await toUrl(ctx, src)]
+                    values: [await toUrl(ctx,session, src)]
                   },
                   {
                     key: config.key4,
@@ -1721,7 +1713,7 @@ ${(h('at', { id: (session.userId) }))}`
                   },
                   {
                     key: config.key3,
-                    values: [await toUrl(ctx, src)]
+                    values: [await toUrl(ctx,session, src)]
                   },
                 ]
               },
@@ -1787,7 +1779,7 @@ ${(h('at', { id: (session.userId) }))}`
                 },
                 {
                   key: config.key3,
-                  values: [await toUrl(ctx, src)]
+                  values: [await toUrl(ctx,session, src)]
                 },
                 {
                   key: config.key4,
@@ -1856,7 +1848,7 @@ ${(h('at', { id: (session.userId) }))}
       }
       if (platform == 'qq' && config.QQ官方使用MD) {
         try {
-          const src = await toUrl(ctx, `${config.图片源}/fusion/${img.split('.')[0]}/${img}.png`)
+          const src = await toUrl(ctx,session, `${config.图片源}/fusion/${img.split('.')[0]}/${img}.png`)
           await session.bot.internal.sendMessage(session.guildId, {
             content: "111",
             msg_type: 2,
@@ -1920,7 +1912,6 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
   ctx.command('宝可梦').subcommand('对战 <user>', '和其他训练师对战', { minInterval: config.对战cd * 1000 })
     .usage(`/对战 @user`)
     .action(async ({ session }, user) => {
-      let battlenow = new Date().getTime()
       let battleSuccess = false
       let jli: string = ''
       let robot: Pokebattle
@@ -1929,6 +1920,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         let userId: string
         let randomUser: { id: string }
         const userArr = await ctx.database.get('pokebattle', { id: session.userId })
+        const userLimit = await isResourceLimit(session.userId, ctx)
         const userVip = isVip(userArr[0])
         if (userArr.length == 0) {
           try {
@@ -1936,7 +1928,10 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
             return
           } catch (e) { return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球` }
         }
-        if (userArr[0].gold < 500) {
+       let spendGold = userVip ? 249 : 500
+       spendGold= (userLimit.resource.goldLimit ==0&&userArr[0].level==100)?0:spendGold
+       console.log(spendGold)
+        if (userArr[0].gold < spendGold) {
           return (`你的金币不足，无法对战`)
         }
         if (userArr[0].monster_1 == '0') return `你还没有宝可梦，快去【${(config.杂交指令别名)}】吧`
@@ -2002,9 +1997,9 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         })
         await ctx.database.set('pokebattle', { id: session.userId }, {
           battleToTrainer: { $subtract: [{ $: 'battleToTrainer' }, 1] },
-          gold: { $subtract: [{ $: 'gold' }, userVip ? 249 : 500] },
+          gold: { $subtract: [{ $: 'gold' }, spendGold] },
         })
-        await session.send(`${userVip ? '你支付了会员价249' : '你支付了500'}金币，请稍等，正在发动了宝可梦对战`)
+        await session.send(`${userVip ? `你支付了会员价${spendGold}`: `你支付了${spendGold}`}金币，请稍等，正在发动了宝可梦对战`)
         if (tarArr[0].battleTimes == 0) {
           let noTrainer = battleSuccess ? session.elements[1].attrs.name : isVip(tarArr[0]) ? "[💎VIP]" : '' + (tarArr[0].name || tarArr[0].battlename)
           jli = `${noTrainer}已经筋疲力尽,每一小时恢复一次可对战次数`
@@ -2060,7 +2055,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
                 },
                 {
                   key: config.key3,
-                  values: [await toUrl(ctx, await getPic(ctx, battlelog, userArr[0], tarArr[0]))]
+                  values: [await toUrl(ctx,session, await getPic(ctx, battlelog, userArr[0], tarArr[0]))]
                 },
                 {
                   key: config.key4,
@@ -2294,7 +2289,7 @@ ${skilllist.join('\n')}
               },
               {
                 key: config.key3,
-                values: [await toUrl(ctx, pathToFileURL(resolve(__dirname, './assets/img/trainer', getTrainer + '.png')).href)]
+                values: [await toUrl(ctx,session, pathToFileURL(resolve(__dirname, './assets/img/trainer', getTrainer + '.png')).href)]
               },
               {
                 key: config.key4,
@@ -2388,7 +2383,7 @@ ${skilllist.join('\n')}
                   },
                   {
                     key: config.key3,
-                    values: [await toUrl(ctx, `file://${resolve(__dirname, `assets/img/trainer/${userArr[0].trainer[0]}.png`)}`)]
+                    values: [await toUrl(ctx,session, `file://${resolve(__dirname, `assets/img/trainer/${userArr[0].trainer[0]}.png`)}`)]
                   },
                   {
                     key: config.key4,
