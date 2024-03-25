@@ -20,6 +20,16 @@ export interface Battlers{
     skill: number
 }
 
+export interface WildPokemon{
+    id:string
+    name:string
+    type: string[]
+    level: number
+    hitSpeed: number
+    power: PokemonPower
+    skill: number
+}
+
 export class Skill {
     id:number
     name:string

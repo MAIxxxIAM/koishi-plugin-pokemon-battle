@@ -2,6 +2,7 @@ import { resolve } from 'path'
 import { Pokebattle,logger,config,shop,testcanvas } from '..'
 import { type,battleType} from './data'
 import { Context, Session } from 'koishi'
+import { WildPokemon } from '../battle'
 
 
 export async function isResourceLimit (userId:string,ctx:Context) {
@@ -16,7 +17,7 @@ export async function isResourceLimit (userId:string,ctx:Context) {
 export async function getPic(ctx, log, user, tar) {
   try {
     let att: Pokebattle, def: Pokebattle
-    if (user.power[4] > tar.power[4]) { att = user; def = tar } else { att = tar; def = user }
+    if (Number(user.power[5]) >Number( tar.power[5])) { att = user; def = tar } else { att = tar; def = user }
     const attPerson = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `../assets/img/trainer/${att.trainer[0]}.png`)}`)
     const defPerson = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `../assets/img/trainer/${def.trainer[0]}.png`)}`)
     const attPokemon = await ctx.canvas.loadImage(`${config.图片源}/fusion/${att.monster_1.split('.')[0]}/${att.monster_1}.png`)
@@ -36,6 +37,49 @@ export async function getPic(ctx, log, user, tar) {
       ctx.drawImage(attPokemon, 141, 83, 130, 130)
       ctx.restore()
       ctx.drawImage(defPerson, 558, 24, 130, 130)
+      ctx.drawImage(defPokemon, 488, 83, 130, 130)
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.font = 'normal 24px zpix'
+      ctx.fillStyle = 'white'
+      ctx.fillText(array[array.length - 1], 356, 722)
+      ctx.fillStyle = 'black'
+      for (let i = 0; i < array.length - 1; i++) {
+        ctx.fillText(`⚔️${array[i]}⚔️`, 356, 300 + 60 * (i))
+        if (i > 4) { break }
+      }
+      dataUrl = await ctx.canvas.toDataURL('image/jpeg')
+    })
+    return dataUrl
+  } catch (e) {
+    logger.info(e)
+    return `渲染失败`
+  }
+}
+
+
+export async function getWildPic(ctx, log:string, user:Pokebattle, tar:string) {
+  try {
+    let player: Pokebattle, wild: string
+    player = user
+    wild = tar.split('.')[0]
+    const attPerson = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `../assets/img/trainer/${player.trainer[0]}.png`)}`)
+    const attPokemon = await ctx.canvas.loadImage(`${config.图片源}/fusion/${player.monster_1.split('.')[0]}/${player.monster_1}.png`)
+    const defPokemon = await ctx.canvas.loadImage(`${config.图片源}/fusion/${wild}/${wild}.png`)
+    const backimage = await ctx.canvas.loadImage(`${testcanvas}${resolve(__dirname, `../assets/img/components/battle.png`)}`)
+    let array = log.split('\n')
+    let attCount: number
+    let defCount: number
+    if (array.length % 2 == 0) { attCount = array.length / 2; defCount = array.length / 2 - 1 } else { attCount = Math.floor(array.length / 2); defCount = Math.floor(array.length / 2) }
+    let dataUrl: any
+    await ctx.canvas.render(712, 750, async (ctx) => {
+      ctx.drawImage(backimage, 0, 0, 712, 750)
+      ctx.save()
+      ctx.translate(712 / 2, 0)
+      ctx.scale(-1, 1)
+      ctx.drawImage(attPerson, 202, 24, 130, 130)
+      ctx.drawImage(attPokemon, 141, 83, 130, 130)
+      ctx.restore()
       ctx.drawImage(defPokemon, 488, 83, 130, 130)
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'

@@ -2,7 +2,7 @@ import { Schema, h, $, Context, is, Session } from 'koishi'
 import pokemonCal from './utils/pokemon'
 import * as pokeGuess from './pokeguess'
 import { } from 'koishi-plugin-cron'
-import { button, catchbutton, findItem, getPic, getRandomName, moveToFirst, toUrl, urlbutton, getType, isVip, isResourceLimit } from './utils/mothed'
+import { button, catchbutton, findItem, getPic, getRandomName, moveToFirst, toUrl, urlbutton, getType, isVip, isResourceLimit, getWildPic } from './utils/mothed'
 import { pathToFileURL } from 'url'
 import { resolve } from 'path'
 import * as fs from 'fs'
@@ -20,6 +20,7 @@ import { expToLv, expBase, skillMachine } from './utils/data'
 import { Pokedex } from './pokedex/pokedex'
 import { pokebattle } from './battle/pvp'
 import { AddGroup, Pokebattle, PrivateResource, model } from './model'
+import { catchPokemon } from './battle/pve'
 
 
 
@@ -69,6 +70,7 @@ export interface Config {
   训练师定价: number
   扭蛋币定价: number
   改名卡定价: number
+  野生宝可梦难度系数: number
   aifadian: string
   图片源: string
   对战cd: number
@@ -121,6 +123,7 @@ github:https://github.com/MAIxxxIAM/pokemonFusionImage
     精灵球定价: Schema.number().default(800),
     训练师定价: Schema.number().default(10000),
     扭蛋币定价: Schema.number().default(1500),
+    野生宝可梦难度系数: Schema.number().default(1.2),
     改名卡定价: Schema.number().default(60000),
     aifadian: Schema.string().default('https://afdian.net/item/f93aca30e08c11eebccb52540025c377'),
     对战cd: Schema.number().default(10).description('单位：秒'),
@@ -172,21 +175,21 @@ export async function apply(ctx, conf: Config) {
   model(ctx)
 
   ctx.cron('0 0 * * *', async () => {
-    await ctx.database.set('pokemon.addGroup',{},row=>({
+    await ctx.database.set('pokemon.addGroup', {}, row => ({
       count: 3
     }))
-    await ctx.database.set('pokebattle', { vip: { $gt: 0 } },row=>({
-      vip: $.sub(row.vip,1)
+    await ctx.database.set('pokebattle', { vip: { $gt: 0 } }, row => ({
+      vip: $.sub(row.vip, 1)
     }))
-  await ctx.database.set('pokemon.resourceLimit',{},row=>({
-    resource:new PrivateResource(config.金币获取上限) 
-  }))
+    await ctx.database.set('pokemon.resourceLimit', {}, row => ({
+      resource: new PrivateResource(config.金币获取上限)
+    }))
   })
 
 
   ctx.cron('0 * * * *', async () => {
-    await ctx.database.get('pokebattle', { battleTimes: { $lt: 27 } },row=>({
-      battleTimes: $.add(row.battleTimes,3)
+    await ctx.database.set('pokebattle', { battleTimes: { $lt: 27 } }, row => ({
+      battleTimes: $.add(row.battleTimes, 3)
     }))
   })
 
@@ -361,7 +364,7 @@ export async function apply(ctx, conf: Config) {
               },
               {
                 key: config.key3,
-                values: [await toUrl(ctx,session, `file://${imgurl}`)]
+                values: [await toUrl(ctx, session, `file://${imgurl}`)]
               },
             ]
           },
@@ -558,7 +561,7 @@ export async function apply(ctx, conf: Config) {
                     },
                     {
                       key: config.key3,
-                      values: [await toUrl(ctx,session, src)]
+                      values: [await toUrl(ctx, session, src)]
                     },
                     {
                       key: config.key4,
@@ -676,7 +679,7 @@ export async function apply(ctx, conf: Config) {
                   },
                   {
                     key: config.key3,
-                    values: [await toUrl(ctx,session, src)]
+                    values: [await toUrl(ctx, session, src)]
                   },
                 ]
               },
@@ -734,9 +737,11 @@ export async function apply(ctx, conf: Config) {
     .alias(config.捕捉指令别名)
     .usage(`/${config.捕捉指令别名}`)
     .action(async ({ session }) => {
+      let catchCose = 0
       const { platform } = session
       const userArr: Array<Pokebattle> = await ctx.database.get('pokebattle', { id: session.userId })
       const vip = isVip(userArr[0])
+      const vipReward = vip ? 1.5 : 1
       const vipName = vip ? "[💎VIP]" : ''
       const pokeDex = new Pokedex(userArr[0])
       let usedCoords = []
@@ -823,7 +828,7 @@ export async function apply(ctx, conf: Config) {
                     },
                     {
                       key: config.key3,
-                      values: [await toUrl(ctx,session, src)]
+                      values: [await toUrl(ctx, session, src)]
                     },
                     {
                       key: config.key4,
@@ -871,9 +876,6 @@ ${(h('at', { id: (session.userId) }))}
           const chooseMonster = await session.prompt(config.捕捉等待时间)
           let poke
           let reply: string
-          await ctx.database.set('pokebattle', { id: session.userId }, {//扣除精灵球
-            captureTimes: { $subtract: [{ $: 'captureTimes' }, 1] },
-          })
           if (!chooseMonster) {//未输入
             return `哎呀！宝可梦们都逃跑了！
 精灵球-1`
@@ -903,10 +905,6 @@ ${(h('at', { id: (session.userId) }))}
             const hasPoke = userArr[0].ultramonster?.includes(poke)
             if (hasPoke) {
 
-              await ctx.database.set('pokebattle', { id: session.userId }, {
-                captureTimes: { $add: [{ $: 'captureTimes' }, 1] },
-              })
-
               return `${h('at', { id: session.userId })}你已经拥有一只了，${pokemonCal.pokemonlist(poke)}挣脱束缚逃走了
 但是他把精灵球还你了`
             } else {
@@ -920,6 +918,7 @@ ${(h('at', { id: (session.userId) }))}
               await ctx.database.set('pokebattle', { id: session.userId }, {
                 ultramonster: userArr[0].ultramonster,
               })
+              catchCose = 1
               return `${h('at', { id: session.userId })}恭喜你获得了传说宝可梦【${pokemonCal.pokemonlist(poke)}】`
             }
           } else if (banID.includes(poke) && userArr[0].lapTwo) {
@@ -931,6 +930,7 @@ ${(h('at', { id: (session.userId) }))}
               await ctx.database.set('pokebattle', { id: session.userId }, {
                 ultra: userArr[0].ultra,
               })
+              catchCose = 1
               if (platform != 'qq' || !config.QQ官方使用MD)
                 return `${pokemonCal.pokemomPic(poke, false)}
 ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦————${pokemonCal.pokemonlist(poke)}\r传说收集值+1，当前【${pokemonCal.pokemonlist(poke)}】收集值为${userArr[0].ultra[poke] * 10}%`
@@ -951,7 +951,7 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
                       },
                       {
                         key: config.key3,
-                        values: [await toUrl(ctx,session, `${(pokemonCal.pokemomPic(poke, false)).toString().match(/src="([^"]*)"/)[1]}`)]
+                        values: [await toUrl(ctx, session, `${(pokemonCal.pokemomPic(poke, false)).toString().match(/src="([^"]*)"/)[1]}`)]
                       },
                       {
                         key: config.key5,
@@ -987,6 +987,26 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
               )
             }
           }
+
+          //pve对战
+          const catchResults = catchPokemon(userArr[0], poke)
+          const log = catchResults[0] as string
+          let result = catchResults[1] as boolean
+          let baseexp=0
+          let expGet=0
+          let expNew=userArr[0].exp
+          let getGold=0
+          let lvNew=userArr[0].level
+          if(result){
+          baseexp = Number(expBase.exp[Number(String(poke).split('.')[0]) - 1].expbase)
+          expGet = userArr[0].level > 99 ? 0 : Math.floor(userArr[0].level * baseexp / 7 * vipReward)
+          expNew = pokemonCal.expCal(userArr[0].level, userArr[0].exp + expGet)[1]
+          getGold = userArr[0].level > 99 ? Math.floor(pokemonCal.mathRandomInt(200, 400) * vipReward) : 0
+          lvNew = pokemonCal.expCal(userArr[0].level, userArr[0].exp + expGet)[0]
+        }
+        result=userArr[0].monster_1=='0'?true:result
+        const title: string = result ? `<@${session.userId}>成功捕捉了${pokemonCal.pokemonlist(poke)}` : `<@${session.userId}>被${pokemonCal.pokemonlist(poke)}打败了`
+        const picture=userArr[0].monster_1=='0'?(pokemonCal.pokemomPic(poke, false)).toString().match(/src="([^"]*)"/)[1]:await getWildPic(ctx, log, userArr[0], poke)
           if (platform == 'qq' && config.QQ官方使用MD) {
             try {
               await session.bot.internal.sendMessage(session.channelId, {
@@ -997,7 +1017,7 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
                   params: [
                     {
                       key: config.key1,
-                      values: [`<@${session.userId}>获得了新的宝可梦`]
+                      values: [title]
                     },
                     {
                       key: config.key2,
@@ -1005,7 +1025,7 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
                     },
                     {
                       key: config.key3,
-                      values: [await toUrl(ctx,session, `${(pokemonCal.pokemomPic(poke, false)).toString().match(/src="([^"]*)"/)[1]}`)]
+                      values: [await toUrl(ctx, session, `${picture}`)]
                     },
                     userArr[0].lapTwo ? {
                       key: config.key4,
@@ -1014,7 +1034,14 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
                       {
                         key: config.key4,
                         values: ["tips: “大灾变” 事件后的宝可梦好像并不能进行战斗了"]
-                      }
+                      },
+                    userArr[0].level>99 ?{
+                      key: config.key5,
+                      values: [`满级后，无法获得经验\r金币+${getGold}`]
+                    }:{
+                      key: config.key5,
+                      values: [`你获得了${expGet}点经验值\r${pokemonCal.exp_bar(lvNew,expNew)}`]
+                    },
                   ]
                 },
                 keyboard: {
@@ -1033,12 +1060,21 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
               return `网络繁忙，再试一次`
             }
           } else {
-            await session.send(`${pokemonCal.pokemomPic(poke, false)}
-\u200b${reply}精灵球-1`
+            await session.send(`${await getWildPic(ctx, log, userArr[0], poke)}
+${result ? '恭喜你捕捉到了宝可梦！' : '很遗憾，宝可梦逃走了！'}
+\u200b${reply}`
             )
           }
-
-
+          result ? catchCose = 1 : catchCose = 0
+          if (!result) {
+            return
+          }
+          await ctx.database.set('pokebattle', { id: session.userId }, {
+            captureTimes: userArr[0].captureTimes - catchCose,
+            exp: expNew,
+            level: lvNew,
+            gold: userArr[0].gold + getGold
+          })
           if (userArr[0].AllMonster.length < 6) {//背包空间
             let five: string = ''
             if (userArr[0].AllMonster.length === 5) five = `\n你的背包已经满了,你可以通过【${(config.放生指令别名)}】指令，放生宝可梦`//背包即满
@@ -1092,7 +1128,7 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
                       },
                       {
                         key: config.key3,
-                        values: [await toUrl(ctx,session, src)]
+                        values: [await toUrl(ctx, session, src)]
                       },
                       {
                         key: config.key4,
@@ -1222,7 +1258,7 @@ ${(h('at', { id: (session.userId) }))}
                   },
                   {
                     key: config.key3,
-                    values: [await toUrl(ctx,session, src)]
+                    values: [await toUrl(ctx, session, src)]
                   },
                   {
                     key: config.key10,
@@ -1334,7 +1370,7 @@ ${(h('at', { id: (session.userId) }))}
                         },
                         {
                           key: config.key3,
-                          values: [await toUrl(ctx,session, src)]
+                          values: [await toUrl(ctx, session, src)]
                         },
                         {
                           key: config.key4,
@@ -1566,7 +1602,7 @@ ${(h('at', { id: (session.userId) }))}`
                   },
                   {
                     key: config.key3,
-                    values: [await toUrl(ctx,session, src)]
+                    values: [await toUrl(ctx, session, src)]
                   },
                   {
                     key: config.key4,
@@ -1578,7 +1614,7 @@ ${(h('at', { id: (session.userId) }))}`
                   },
                   {
                     key: config.key6,
-                    values: [`你当前的金币上限为${playerLimit.resource.goldLimit}`]
+                    values: [`你今天的金币获取上限剩余${playerLimit.resource.goldLimit}`]
                   },
                   {
                     key: config.key10,
@@ -1713,7 +1749,7 @@ ${(h('at', { id: (session.userId) }))}`
                   },
                   {
                     key: config.key3,
-                    values: [await toUrl(ctx,session, src)]
+                    values: [await toUrl(ctx, session, src)]
                   },
                 ]
               },
@@ -1779,7 +1815,7 @@ ${(h('at', { id: (session.userId) }))}`
                 },
                 {
                   key: config.key3,
-                  values: [await toUrl(ctx,session, src)]
+                  values: [await toUrl(ctx, session, src)]
                 },
                 {
                   key: config.key4,
@@ -1848,7 +1884,7 @@ ${(h('at', { id: (session.userId) }))}
       }
       if (platform == 'qq' && config.QQ官方使用MD) {
         try {
-          const src = await toUrl(ctx,session, `${config.图片源}/fusion/${img.split('.')[0]}/${img}.png`)
+          const src = await toUrl(ctx, session, `${config.图片源}/fusion/${img.split('.')[0]}/${img}.png`)
           await session.bot.internal.sendMessage(session.guildId, {
             content: "111",
             msg_type: 2,
@@ -1916,7 +1952,6 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
       let jli: string = ''
       let robot: Pokebattle
       try {
-        let losergold = ''
         let userId: string
         let randomUser: { id: string }
         const userArr = await ctx.database.get('pokebattle', { id: session.userId })
@@ -1928,9 +1963,9 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
             return
           } catch (e) { return `请先输入【${(config.签到指令别名)}】领取属于你的宝可梦和精灵球` }
         }
-       let spendGold = userVip ? 249 : 500
-       spendGold= (userLimit.resource.goldLimit ==0&&userArr[0].level==100)?0:spendGold
-       console.log(spendGold)
+        let spendGold = userVip ? 249 : 500
+        spendGold = (userLimit.resource.goldLimit == 0 && userArr[0].level == 100) ? 0 : spendGold
+        console.log(spendGold)
         if (userArr[0].gold < spendGold) {
           return (`你的金币不足，无法对战`)
         }
@@ -1999,7 +2034,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
           battleToTrainer: { $subtract: [{ $: 'battleToTrainer' }, 1] },
           gold: { $subtract: [{ $: 'gold' }, spendGold] },
         })
-        await session.send(`${userVip ? `你支付了会员价${spendGold}`: `你支付了${spendGold}`}金币，请稍等，正在发动了宝可梦对战`)
+        await session.send(`${userVip ? `你支付了会员价${spendGold}` : `你支付了${spendGold}`}金币，请稍等，正在发动了宝可梦对战`)
         if (tarArr[0].battleTimes == 0) {
           let noTrainer = battleSuccess ? session.elements[1].attrs.name : isVip(tarArr[0]) ? "[💎VIP]" : '' + (tarArr[0].name || tarArr[0].battlename)
           jli = `${noTrainer}已经筋疲力尽,每一小时恢复一次可对战次数`
@@ -2010,34 +2045,22 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         let loser = battle[2]
         let loserArr = loser.substring(0, 5) == 'robot' ? [robot] : await ctx.database.get('pokebattle', { id: loser })
         let winnerArr = winner.substring(0, 5) == 'robot' ? [robot] : await ctx.database.get('pokebattle', { id: winner })
-        let getgold = pokemonCal.mathRandomInt(1000, 1500)
-        let losegold = pokemonCal.mathRandomInt(getgold - 300, getgold) + (isVip(loserArr[0]) ? 500 : 0)
-        getgold = getgold + (isVip(winnerArr[0]) ? 500 : 0)
+        let getgold = pokemonCal.mathRandomInt(1000, 1500) + (isVip(winnerArr[0]) ? 500 : 0)
+
         /* 金币上限 */
-        if (winner.substring(0, 5) !== 'robot') {
+        if (winner.substring(0, 5) !== 'robot' && winner == session.userId) {
           const resource = await isResourceLimit(winner, ctx)
           const rLimit = new PrivateResource(resource.resource.goldLimit)
           getgold = await rLimit.getGold(ctx, getgold, winner)
+        }else{
+          await ctx.database.set('pokebattle', { id: session.userId }, {
+            gold: { $add: [{ $: 'gold' }, spendGold/2] },
+          })
         }
-        if (loserArr[0].level > 99 && loser.substring(0, 5) !== 'robot') {
-          const loseResource = await isResourceLimit(loser, ctx)
-          const loseRLimit = new PrivateResource(loseResource.resource.goldLimit)
-          losegold = await loseRLimit.getGold(ctx, losegold, loser)
-        }
+
         const winName = isVip(winnerArr[0]) ? "[💎VIP]" : ''
         const loseName = isVip(loserArr[0]) ? "[💎VIP]" : ''
-        let expGet = loserArr[0]?.level > 99 ? 0 : Math.floor((isVip(loserArr[0]) ? 1.5 : 1) * loserArr[0].level * Number(expBase.exp[(Number(winnerArr[0].monster_1.split('.')[0]) > Number(winnerArr[0].monster_1.split('.')[1]) ? Number(winnerArr[0].monster_1.split('.')[1]) : Number(winnerArr[0].monster_1.split('.')[0])) - 1].expbase) / 7)
-        if (loserArr[0].level >= winnerArr[0].level + 6) {
-          expGet = Math.floor(expGet * 0.2)
-        }
-        let expNew = pokemonCal.expCal(loserArr[0].level, loserArr[0].exp + expGet)[1]
-        let lvNew = pokemonCal.expCal(loserArr[0].level, loserArr[0].exp + expGet)[0]
-        losergold += `${loseName + (loserArr[0].name || loserArr[0].battlename)}输了\r等级:lv.${lvNew}` + ((loserArr[0].level > 99) ? `\r金币：+${losegold}` : `\r经验：+${expGet}`)
-        await ctx.database.set('pokebattle', { id: loser }, {
-          level: lvNew,
-          exp: expNew,
-          power: pokemonCal.power(pokemonCal.pokeBase(loserArr[0].monster_1), lvNew),
-        })
+       const loserlog = `${loseName + (loserArr[0].name || loserArr[0].battlename)}输了\r`
         if (session.platform == 'qq' && config.QQ官方使用MD) {
           await session.bot.internal.sendMessage(session.guildId, {
             content: "111",
@@ -2055,7 +2078,7 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
                 },
                 {
                   key: config.key3,
-                  values: [await toUrl(ctx,session, await getPic(ctx, battlelog, userArr[0], tarArr[0]))]
+                  values: [await toUrl(ctx, session, await getPic(ctx, battlelog, userArr[0], tarArr[0]))]
                 },
                 {
                   key: config.key4,
@@ -2063,14 +2086,10 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
                 },
                 {
                   key: config.key5,
-                  values: [`金币+${getgold}`]
+                  values: [`${winner==session.userId?`金币+${getgold}\r${loserlog}`:`${loseName}<@${session.userId}>你输了\r已返还一半金币`}`]
                 },
                 {
-                  key: config.key7,
-                  values: [`${losergold}`]
-                },
-                {
-                  key: config.key8,
+                  key: config.key10,
                   values: [`通知：由于用户剧增，决定加入洛托姆训练师缓解服务器压力`]
                 },
               ]
@@ -2097,8 +2116,6 @@ ${h('at', { id: (session.userId) })}\u200b
 获胜者:${winName + (winnerArr[0].name || winnerArr[0].battlename)}
 金币+${getgold}
 ====================
-${losergold}
-\r${(pokemonCal.exp_bar(lvNew, expNew))}
 ${jli}`
       } catch (e) {
         logger.info(e)
@@ -2289,7 +2306,7 @@ ${skilllist.join('\n')}
               },
               {
                 key: config.key3,
-                values: [await toUrl(ctx,session, pathToFileURL(resolve(__dirname, './assets/img/trainer', getTrainer + '.png')).href)]
+                values: [await toUrl(ctx, session, pathToFileURL(resolve(__dirname, './assets/img/trainer', getTrainer + '.png')).href)]
               },
               {
                 key: config.key4,
@@ -2383,7 +2400,7 @@ ${skilllist.join('\n')}
                   },
                   {
                     key: config.key3,
-                    values: [await toUrl(ctx,session, `file://${resolve(__dirname, `assets/img/trainer/${userArr[0].trainer[0]}.png`)}`)]
+                    values: [await toUrl(ctx, session, `file://${resolve(__dirname, `assets/img/trainer/${userArr[0].trainer[0]}.png`)}`)]
                   },
                   {
                     key: config.key4,

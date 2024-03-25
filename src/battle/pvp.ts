@@ -2,6 +2,7 @@ import { Pokebattle, logger } from '..';
 import { skillMachine } from '../utils/data';
 import { typeEffect } from '../utils/mothed';
 import { Battlers, PokemonPower } from './';
+import { PVE } from './pve';
 
 export class PVP implements Battlers {
     id: string
@@ -45,6 +46,19 @@ export class PVP implements Battlers {
         (`${this.battlename}的 [${skillMachine.skill[this.skill].skill}]，造成 ${Math.floor(damage)} 伤害,${target.battlename}剩余${Math.floor(target.power.hp)}HP`)
         return log
     }
+    wildAttack(target:PVE){
+      const hit=Math.random() <this.hitSpeed/4/256?2:1
+      const skillCategory = skillMachine.skill[this.skill].category
+      const attCategory=skillCategory
+      const defCategory=attCategory+1
+      const Effect =typeEffect(this.monster_1,target.id,skillMachine.skill[this.skill].type)
+      let damage = Math.floor(((2 * this.level + 10) / 250 * this.power[this.getKeys(this.power,attCategory)] / (1.7*target.power[this.getKeys(target.power,defCategory)]) * skillMachine.skill[this.skill].Dam + 2) *hit*Effect*(Math.random()*0.15+0.85))
+      target.power.hp = target.power.hp - damage
+      target.power.hp=target.power.hp<0?0:target.power.hp
+    const log=  hit==2?(`*${this.battlename}击中要害,对${target.name}造成 ${Math.floor(damage)} 伤害*`):
+      (`${this.battlename}的 [${skillMachine.skill[this.skill].skill}]，造成 ${Math.floor(damage)} 伤害,${target.name}剩余${Math.floor(target.power.hp)}HP`)
+      return log
+  }
 }
 
 export function pokebattle(a:Pokebattle, b:Pokebattle) {
