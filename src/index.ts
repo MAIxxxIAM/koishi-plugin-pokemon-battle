@@ -1046,7 +1046,7 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
                       values: [`满级后，无法获得经验\r金币+${getGold}`]
                     }:{
                       key: config.key5,
-                      values: [`你获得了${expGet}点经验值\rEXP:${pokemonCal.exp_bar(lvNew,expNew)}\r当前体力：${userArr[0].battleToTrainer - 1}`]
+                      values: [`你获得了${expGet}点经验值\rEXP:${pokemonCal.exp_bar(lvNew,expNew)}`]
                     },
                   ]
                 },
@@ -1066,7 +1066,7 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
               return `网络繁忙，再试一次`
             }
           } else {
-            await session.send(`${await getWildPic(ctx, log, userArr[0], poke)}
+            await session.send(`${h.image(await getWildPic(ctx, log, userArr[0], poke))}
 ${result ? '恭喜你捕捉到了宝可梦！' : '很遗憾，宝可梦逃走了！'}
 \u200b${reply}`
             )
@@ -1981,8 +1981,8 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
             let randomID = await ctx.database
               .select('pokebattle')
               .where(row => $.ne(row.id, userArr[0].id))
-              .where(row => $.lte(row.level, Number(userArr[0].level) + 10))
-              .where(row => $.gte(row.level, Number(userArr[0].level) - 10))
+              .where(row => $.lte(row.level, Number(userArr[0].level)))
+              .where(row => $.gte(row.level, Number(userArr[0].level) - 5))
               .where(row => $.gt(row.battleTimes, 0))
               .where(row => $.ne(row.monster_1, '0'))
               .execute()
