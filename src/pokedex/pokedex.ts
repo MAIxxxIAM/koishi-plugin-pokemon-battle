@@ -1,5 +1,5 @@
 import { Context, h } from "koishi"
-import { Pokebattle, config, testcanvas } from ".."
+import { Pokebattle, config, testcanvas,Config  } from ".."
 import { resolve } from "path"
 import pokemonCal from "../utils/pokemon"
 import { button, toUrl } from "../utils/mothed"
@@ -53,7 +53,7 @@ export class Pokedex {
 
 export async function apply(ctx) {
 
-    ctx.command('宝可梦').subcommand('查看图鉴 [page:number]').action(async ({ session }, page: number) => {
+    ctx.command('宝可梦').subcommand('查看图鉴 [page:number]','查看宝可梦图鉴').action(async ({ session }, page: number) => {
         const players: Pokebattle[] = await ctx.database.get('pokebattle', { id: session.userId })
         page ? page = page : page = 1
         if (players.length === 0) {
@@ -134,7 +134,7 @@ export async function apply(ctx) {
         }
     })
 
-    ctx.command('宝可梦').subcommand('接收宝可梦 <Pid:number>')
+    ctx.command('宝可梦').subcommand('接收宝可梦 <Pid:number>','从图鉴中接收宝可梦，花费1200金币')
         .alias('接收')
         .action(async ({ session }, Pid: number) => {
             const players: Pokebattle[] = await ctx.database.get('pokebattle', { id: session.userId })

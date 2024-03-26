@@ -1,6 +1,6 @@
 import { expToLv, skillMachine, pokemonBase, battleType } from './data'
 
-import {config} from '../index';
+import {config,Config} from '../index';
 
 import { h } from "koishi"
 

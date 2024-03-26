@@ -1,5 +1,5 @@
 import { PokemonPower, WildPokemon } from ".";
-import { config, logger } from "..";
+import { config, logger,Config  } from "..";
 import { Pokebattle } from "../model";
 import { skillMachine, skills } from "../utils/data";
 import { getType, typeEffect } from "../utils/mothed";

@@ -1,5 +1,5 @@
 import { Context } from "koishi";
-import { config } from "..";
+import { config,Config  } from "..";
 import { button, urlbutton } from "../utils/mothed";
 
 
@@ -51,7 +51,7 @@ ${notice}`
                 })
                 return
             } catch (e) {
-                return
+                return '未查询到vip信息'
             }
         }
         const user = users[0]

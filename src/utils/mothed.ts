@@ -1,5 +1,5 @@
 import { resolve } from 'path'
-import { Pokebattle,logger,config,shop,testcanvas } from '..'
+import { Pokebattle,logger,config,shop,testcanvas,Config } from '..'
 import { type,battleType} from './data'
 import { Context, Session } from 'koishi'
 import { WildPokemon } from '../battle'

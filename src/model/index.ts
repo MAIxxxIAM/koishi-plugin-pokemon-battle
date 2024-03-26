@@ -3,7 +3,7 @@ import { Pokedex } from "../pokedex/pokedex"
 import { PokemonPower, Skill } from "../battle"
 import pokemonCal from "../utils/pokemon"
 import { PVP } from "../battle/pvp"
-import { config } from ".."
+import { config,Config  } from ".."
 
 
 declare module 'koishi' {

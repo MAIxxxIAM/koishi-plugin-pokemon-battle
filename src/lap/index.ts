@@ -1,15 +1,10 @@
 import { Context, Schema } from 'koishi'
 
-import {Pokebattle,config} from '../index';
+import {Pokebattle,config,Config } from '../index';
 import { button, toUrl } from '../utils/mothed';
 import pokemonCal from '../utils/pokemon';
 
 export const name = 'lapTwo'
-
-export interface Config {}
-
-export const Config: Schema<Config> = Schema.object({})
-
 
 
 export function apply(ctx: Context) {
