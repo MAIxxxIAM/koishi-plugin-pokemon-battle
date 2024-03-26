@@ -126,22 +126,13 @@ ${h('image', { url:qImage})}
             y = `,当前回答受到传说中的宝可梦的加成，奖励增加`
           }
         if (y_n) {
-        if (player.battleToTrainer >= config.对战次数+(vip?20:0)) {
-          const addgole = 100 + vipRGold + 50 * player.ultramonster.length
+
+          let addgole = 100 + vipRGold + 50 * player.ultramonster.length
           const resource = await isResourceLimit(session.userId, ctx)
           const rLimit = new PrivateResource(resource.resource.goldLimit)
-          await rLimit.getGold(ctx, addgole, session.userId)
+          addgole =await rLimit.getGold(ctx, addgole, session.userId)
           player.gold += addgole
-          end = `回答正确\r你获得了${addgole}金币,现在你的体力是满的，回答问题只会获得金币哦~${y}`
-        }
-        else {
-          const addbattle = player.ultramonster.length + 1
-          player.battleToTrainer += addbattle
-          await ctx.database.set('pokebattle', { id: session.userId }, {
-            battleToTrainer: { $add: [{ $: 'battleToTrainer' }, addbattle] },
-          })
-          end = `回答正确\r你获得了${player.ultramonster.length + 1}体力${y}`
-        }
+          end = `回答正确\r你获得了${addgole}金币~${y}`
       }
       else {
         end = `回答错误\r正确答案是${right}`
@@ -172,7 +163,7 @@ ${h('image', { url:qImage})}
                       },
                       {
                         key: config.key6,
-                        values: [`当前体力：${player.battleToTrainer}\r当前金币：${player.gold}`]
+                        values: [`当前金币：${player.gold}`]
                       },
                   ]
                 },
@@ -191,7 +182,7 @@ ${h('image', { url:qImage})}
             await session.send(`<@${session.userId}>问答结果：
 ${h('image', { url:aImage})}
 ${end}
-当前体力：${player.battleToTrainer}\r当前金币：${player.gold}
+当前金币：${player.gold}
 `)
         }
     })

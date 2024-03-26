@@ -179,7 +179,7 @@ export async function apply(ctx, conf: Config) {
       count: 3
     }))
     await ctx.database.set('pokebattle', { vip: { $gt: 0 } }, row => ({
-      vip: $.sub(row.vip, 1)
+      vip: $.sub(row.vip, 1),
     }))
     await ctx.database.set('pokemon.resourceLimit', {}, row => ({
       resource: new PrivateResource(config.金币获取上限)
@@ -189,7 +189,7 @@ export async function apply(ctx, conf: Config) {
 
   ctx.cron('0 * * * *', async () => {
     await ctx.database.set('pokebattle', { battleTimes: { $lt: 27 } }, row => ({
-      battleTimes: $.add(row.battleTimes, 3)
+      battleTimes: $.add(row.battleTimes, 3),
     }))
   })
 
@@ -473,7 +473,7 @@ export async function apply(ctx, conf: Config) {
               name: playerName,
               captureTimes: { $add: [{ $: 'captureTimes' }, config.签到获得个数 + vipRBoll] },
               battleTimes: 30,
-              battleToTrainer: config.对战次数 + (vip ? 20 : 0),
+              // battleToTrainer: { $add: [{ $: 'battleToTrainer' }, vip ? 20 : 0] },
               date: dateToday,
               level: lvNew,
               exp: expNew,
@@ -631,7 +631,7 @@ export async function apply(ctx, conf: Config) {
           date: Math.round(Number(new Date()) / 1000),
           captureTimes: config.签到获得个数,
           battleTimes: 3,
-          battleToTrainer: config.对战次数 + (vip ? 20 : 0),
+          // battleToTrainer: config.对战次数 + (vip ? 20 : 0),
           level: 5,
           exp: 0,
           monster_1: '0',
@@ -737,7 +737,7 @@ export async function apply(ctx, conf: Config) {
     .alias(config.捕捉指令别名)
     .usage(`/${config.捕捉指令别名}`)
     .action(async ({ session }) => {
-      let catchCose = 0
+      let catchCose = 1
       const { platform } = session
       const userArr: Array<Pokebattle> = await ctx.database.get('pokebattle', { id: session.userId })
       const vip = isVip(userArr[0])
@@ -877,8 +877,7 @@ ${(h('at', { id: (session.userId) }))}
           let poke
           let reply: string
           if (!chooseMonster) {//未输入
-            return `哎呀！宝可梦们都逃跑了！
-精灵球-1`
+            return `哎呀！宝可梦们都逃跑了！精灵球-1`
           }
           switch (chooseMonster) {//选择宝可梦
             case '1':
@@ -898,15 +897,17 @@ ${(h('at', { id: (session.userId) }))}
 【1】⬛（${(pokemonCal.pokemonlist(pokeM[0]))}）⬛\r【2】⬛（${(pokemonCal.pokemonlist(pokeM[1]))}）⬛\r【3】✨【${(pokemonCal.pokemonlist(poke))}】✨\r恭喜${(h('at', { id: (session.userId) }))}获得${(pokemonCal.pokemonlist(poke))}`
               break;
             default:
-              return '球丢歪啦！重新捕捉吧~\n精灵球-1"'
+              await ctx.database.set('pokebattle', { id: session.userId }, {
+                captureTimes: { $subtract: [{ $: 'captureTimes' }, catchCose] }
+              })
+              return `球丢歪啦！重新捕捉吧~\n精灵球 -1`
           }
           if (banID.includes(poke) && !userArr[0].lapTwo) {
 
             const hasPoke = userArr[0].ultramonster?.includes(poke)
             if (hasPoke) {
-
               return `${h('at', { id: session.userId })}你已经拥有一只了，${pokemonCal.pokemonlist(poke)}挣脱束缚逃走了
-但是他把精灵球还你了`
+`
             } else {
 
               let ultramonsterSet = new Set(userArr[0].ultramonster)
@@ -918,7 +919,9 @@ ${(h('at', { id: (session.userId) }))}
               await ctx.database.set('pokebattle', { id: session.userId }, {
                 ultramonster: userArr[0].ultramonster,
               })
-              catchCose = 1
+              await ctx.database.set('pokebattle', { id: session.userId }, {
+                captureTimes: { $subtract: [{ $: 'captureTimes' }, catchCose] }
+              })
               return `${h('at', { id: session.userId })}恭喜你获得了传说宝可梦【${pokemonCal.pokemonlist(poke)}】`
             }
           } else if (banID.includes(poke) && userArr[0].lapTwo) {
@@ -930,7 +933,10 @@ ${(h('at', { id: (session.userId) }))}
               await ctx.database.set('pokebattle', { id: session.userId }, {
                 ultra: userArr[0].ultra,
               })
-              catchCose = 1
+              
+              await ctx.database.set('pokebattle', { id: session.userId }, {
+                captureTimes: { $subtract: [{ $: 'captureTimes' }, catchCose] }
+              })
               if (platform != 'qq' || !config.QQ官方使用MD)
                 return `${pokemonCal.pokemomPic(poke, false)}
 ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦————${pokemonCal.pokemonlist(poke)}\r传说收集值+1，当前【${pokemonCal.pokemonlist(poke)}】收集值为${userArr[0].ultra[poke] * 10}%`
@@ -1040,7 +1046,7 @@ ${h('at', { id: session.userId })}恭喜你收集到了传说宝可梦———�
                       values: [`满级后，无法获得经验\r金币+${getGold}`]
                     }:{
                       key: config.key5,
-                      values: [`你获得了${expGet}点经验值\r${pokemonCal.exp_bar(lvNew,expNew)}`]
+                      values: [`你获得了${expGet}点经验值\rEXP:${pokemonCal.exp_bar(lvNew,expNew)}\r当前体力：${userArr[0].battleToTrainer - 1}`]
                     },
                   ]
                 },
@@ -1065,7 +1071,6 @@ ${result ? '恭喜你捕捉到了宝可梦！' : '很遗憾，宝可梦逃走了
 \u200b${reply}`
             )
           }
-          result ? catchCose = 1 : catchCose = 0
           if (!result) {
             return
           }
@@ -1604,10 +1609,10 @@ ${(h('at', { id: (session.userId) }))}`
                     key: config.key3,
                     values: [await toUrl(ctx, session, src)]
                   },
-                  {
-                    key: config.key4,
-                    values: [`当前体力：${userArr[0].battleToTrainer}`]
-                  },
+                  // {
+                  //   key: config.key4,
+                  //   values: [`当前体力：${userArr[0].battleToTrainer}`]
+                  // },
                   {
                     key: config.key5,
                     values: [`宝可梦属性：${getType(userArr[0].monster_1).join(' ')}`]
@@ -1971,7 +1976,6 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
         }
         if (userArr[0].monster_1 == '0') return `你还没有宝可梦，快去【${(config.杂交指令别名)}】吧`
         if (userArr[0].skillbag.length == 0) return `快使用【技能扭蛋机】抽取一个技能并装备上`
-        if (userArr[0].battleToTrainer <= 0) return `你的宝可梦还在恢复，无法对战，如果你今天还没签到，记得先签到再对战哦`
         if (!user) {
           try {
             let randomID = await ctx.database
@@ -2031,7 +2035,6 @@ tips:听说不同种的宝可梦杂交更有优势噢o(≧v≦)o~~
           power: tarArr[0].power
         })
         await ctx.database.set('pokebattle', { id: session.userId }, {
-          battleToTrainer: { $subtract: [{ $: 'battleToTrainer' }, 1] },
           gold: { $subtract: [{ $: 'gold' }, spendGold] },
         })
         await session.send(`${userVip ? `你支付了会员价${spendGold}` : `你支付了${spendGold}`}金币，请稍等，正在发动了宝可梦对战`)
