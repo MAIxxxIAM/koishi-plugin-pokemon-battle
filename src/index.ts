@@ -105,16 +105,34 @@ export const Config = Schema.intersect([
   }),
   Schema.object({
     图片源: Schema.union([
-      Schema.const('https://gitee.com/maikama/pokemon-fusion-image/raw/master').description('gitee'),
-      Schema.const('https://raw.githubusercontent.com/MAIxxxIAM/pokemonFusionImage/main').description('github'),
+      Schema.const('https://gitee.com/maikama/pokemon-fusion-image/raw/master').description('gitee').default('https://gitee.com/maikama/pokemon-fusion-image/raw/master'),
+      Schema.const('https://raw.githubusercontent.com/MAIxxxIAM/pokemonFusionImage/main').description('github').default('https://raw.githubusercontent.com/MAIxxxIAM/pokemonFusionImage/main'),
       Schema.string().description('本地图床').default('http://127.0.0.1:5020/i'),
     ]).description(`
-图片下载地址：
+    # 使用网络图片：
 
-gitee:https://gitee.com/maikama/pokemon-fusion-image
-github:https://github.com/MAIxxxIAM/pokemonFusionImage
 
-**使用pptr提供的canvas服务时，需在本地路径前加file://**
+    ## github源：
+    
+    
+    - https://raw.githubusercontent.com/MAIxxxIAM/pokemonFusionImage/main
+    
+    ## gitee源：
+    
+    
+    - https://gitee.com/maikama/pokemon-fusion-image/raw/master
+    
+    
+    # 使用本地图片：
+    
+    
+    ## 图片下载地址：
+    
+    - gitee:https://gitee.com/maikama/pokemon-fusion-image
+    - github:https://github.com/MAIxxxIAM/pokemonFusionImage
+    
+    
+    **使用pptr提供的canvas服务时，需在本地路径前加file://**
 `),
   }),
   Schema.object({
@@ -309,6 +327,9 @@ export async function apply(ctx, conf: Config) {
   ctx.plugin(lapTwo)
 
   ctx.plugin(pokedex)
+  await ctx.database.set('pokebattle', {lapTwo:true},{
+    lap:2
+  })
 
   ctx.command('宝可梦').subcommand('解压图包文件', { authority: 4 })
     .action(async ({ session }) => {
@@ -748,9 +769,9 @@ export async function apply(ctx, conf: Config) {
         if (userArr[0].captureTimes > 0) {
 
           for (let i = 0; i < 3; i++) {
-            grassMonster[i] = pokemonCal.mathRandomInt(1, userArr[0].lapTwo ? 251 : 151)
+            grassMonster[i] = pokemonCal.mathRandomInt(1,(userArr[0].lap == 3) ? 420 : (userArr[0].lapTwo) ? 251 : 151)
             while (banID.includes(`${grassMonster[i]}.${grassMonster[i]}`) && (userArr[0].lapTwo ? Math.random() > userArr[0].level / 100 : false)) {
-              grassMonster[i] = pokemonCal.mathRandomInt(1, userArr[0].lapTwo ? 251 : 151);
+              grassMonster[i] = pokemonCal.mathRandomInt(1, (userArr[0].lap == 3) ? 420 : (userArr[0].lapTwo) ? 251 : 151);
             }
             pokeM[i] = grassMonster[i] + '.' + grassMonster[i]
             for (let j = 0; j < pokemonCal.pokemonlist(pokeM[i]).length; j++) {

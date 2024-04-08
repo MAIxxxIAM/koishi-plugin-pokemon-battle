@@ -1,8 +1,9 @@
-import { Context, Schema } from 'koishi'
+import { Context, } from 'koishi'
 
-import {Pokebattle,config,Config } from '../index';
-import { button, toUrl } from '../utils/mothed';
+import { Pokebattle, config, Config } from '../index';
+import { button, getChance,  toUrl } from '../utils/mothed';
 import pokemonCal from '../utils/pokemon';
+
 
 export const name = 'lapTwo'
 
@@ -10,16 +11,66 @@ export const name = 'lapTwo'
 export function apply(ctx: Context) {
 
   ctx.model.extend('pokebattle', {
-    lapTwo:{
+    lapTwo: {
       type: 'boolean',
       initial: false,
       nullable: false,
     },
-    ultra:{
+    ultra: {
       type: 'json',
       initial: {},
       nullable: false,
+    },
+    advanceChance: {
+      type: 'boolean',
+      initial: false,
+      nullable: false,
+    },
+    lap: {
+      type: 'unsigned',
+      initial: 1,
+      nullable: false,
     }
+  })
+  ctx.command('宝可梦').subcommand('lapnext', '进入下一周目')
+  .alias('下周目').action(async ({ session }) => {
+    const { userId } = session
+    const [user] = await ctx.database.get('pokebattle', userId)
+    if (!user) {
+      await session.execute('签到')
+      return
+    }
+    const advanceChance = await getChance(user,ctx)
+    if (!advanceChance) {
+      await session.execute('getChance')
+      return
+    }
+      await session.send(`\u200b是否进入下一周目
+进入下一周目,你的等级将会清空
+但是你的宝可梦将会保留
+将会开启420只除神兽外的宝可梦捕捉
+如果你的金币大于300万，将会只保留300万金币
+请输入Y/N`)
+    
+    const inThree = await session.prompt(config.捕捉等待时间)
+    switch (inThree.toLowerCase()) {
+      case 'y':
+        await ctx.database.set('pokebattle', userId, {
+          lap: 3,
+          level: 5,
+          exp: 0,
+          gold: user.gold >= 3000000 ? 3000000 : user.gold,
+          base: pokemonCal.pokeBase(user.monster_1),
+          power: pokemonCal.power(user.base, 5),
+          advanceChance: false,
+        })
+        return `你成功进入了三周目`
+      case 'n':
+        return `你取消了操作`
+      default:
+        return `输入错误`
+    }
+
   })
 
   ctx.command('宝可梦').subcommand('lapTwo', '进入二周目')

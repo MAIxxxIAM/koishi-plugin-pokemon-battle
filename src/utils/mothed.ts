@@ -57,6 +57,24 @@ export async function getPic(ctx, log, user, tar) {
   }
 }
 
+function arraysEqual(a: any[], b: any[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < b.length; i++) {
+    if (!a.includes(b[i])) return false;
+  }
+  return true;
+}
+
+export async function getChance(player:Pokebattle,ctx:Context){
+  const banID = ['150.150', '151.151', '144.144', '145.145', '146.146', '249.249', '250.250', '251.251', '243.243', '244.244', '245.245']
+  const keys=Object.keys(player.ultra)
+  const [battle]= await ctx.database.get('pokemon.resourceLimit', { id: player.id })
+  if(player.lap!==3&&!player.advanceChance&&player.level>99&&arraysEqual(banID, keys)&&battle?.rank>0&&battle?.rank<=10) return true
+  if(player.lap==3||player.advanceChance||!player?.pokedex?.dex) return false
+  const flatArrayA = [].concat(...player.pokedex.dex)
+  const flatArray = [...new Set(flatArrayA)]
+  return flatArray.length==251
+}
 
 export async function getWildPic(ctx, log:string, user:Pokebattle, tar:string) {
   try {

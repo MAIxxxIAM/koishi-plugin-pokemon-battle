@@ -2,8 +2,11 @@ import { $, Context, Session } from "koishi"
 import { Pokedex } from "../pokedex/pokedex"
 import { PokemonPower, Skill } from "../battle"
 import pokemonCal from "../utils/pokemon"
-import { PVP } from "../battle/pvp"
 import { config,Config  } from ".."
+
+
+//智能体兼容
+
 
 
 declare module 'koishi' {
@@ -34,7 +37,7 @@ export class PrivateResource {
             gold = this.goldLimit
             this.goldLimit = 0
         }
-        await ctx.database.set('pokemon.resourceLimit', {id:userId}, {rankScore: 0, resource: this })
+        await ctx.database.set('pokemon.resourceLimit', {id:userId}, {resource: this })
 
         await ctx.database.set('pokebattle', {id:userId}, (data) => ({
             gold: $.add(data.gold, gold)
@@ -43,7 +46,7 @@ export class PrivateResource {
     }
     async addGold(ctx: Context, gold: number, userId:string){
         this.goldLimit = this.goldLimit + gold*10000
-        await ctx.database.set('pokemon.resourceLimit', {id:userId}, {rankScore: 0, resource: this })
+        await ctx.database.set('pokemon.resourceLimit', {id:userId}, {resource: this })
     }
     async subGold(ctx: Context, gold: number, userId:string){
         if (this.goldLimit <gold*10000) {
@@ -51,13 +54,14 @@ export class PrivateResource {
             return
         }
         this.goldLimit = this.goldLimit - gold*10000
-        await ctx.database.set('pokemon.resourceLimit', {id:userId}, {rankScore: 0, resource: this })
+        await ctx.database.set('pokemon.resourceLimit', {id:userId}, {resource: this })
     }
 }
 
 export interface Resource {
     id: string
     rankScore: number
+    rank: number
     resource: PrivateResource
 }
 
@@ -87,18 +91,6 @@ export class Pokemon {
         }
         this.skill = [new Skill(0)]
     }
-    // attack(target:PVP){
-    //     const hit=Math.random() <this.hitSpeed/4/256?2:1
-    //     const skillCategory = skillMachine.skill[this.skill].category
-    //     const attCategory=skillCategory
-    //     const defCategory=attCategory+1
-    //     const Effect =typeEffect(this.monster_1,target.monster_1,skillMachine.skill[this.skill].type)
-    //     let damage = Math.floor(((2 * this.level + 10) / 250 * this.power[this.getKeys(this.power,attCategory)] / (1.7*target.power[this.getKeys(target.power,defCategory)]) * skillMachine.skill[this.skill].Dam + 2) *hit*Effect*(Math.random()*0.15+0.85))
-    //     target.power.hp = target.power.hp - damage
-    //   const log=  hit==2?(`*${this.battlename}击中要害,对${target.battlename}造成 ${Math.floor(damage)} 伤害*`):
-    //     (`${this.battlename}的 [${skillMachine.skill[this.skill].skill}]，造成 ${Math.floor(damage)} 伤害,${target.battlename}剩余${Math.floor(target.power.hp)}HP`)
-    //     return log
-    // }
 
 }
 
@@ -143,6 +135,8 @@ export interface Pokebattle {
     trainerNum?: number
     trainerName?: string[]
     lapTwo?: boolean
+    advanceChance?: boolean
+    lap?: number
     ultra?: object
 }
 
@@ -196,6 +190,7 @@ export async function model(ctx: Context) {
     ctx.model.extend('pokemon.resourceLimit', {
         id: 'string',
         rankScore: 'unsigned',
+        rank: 'unsigned',
         resource: {
             type: 'json',
             initial: new PrivateResource(config.金币获取上限),

@@ -49,6 +49,25 @@ export class Pokedex {
         }
         return false
     }
+    find(lap:number=1){
+        const dex=[151,251,420]
+        let allDex=Array.from({length:dex[lap-1]},(_,k)=>k+1)
+        const flatArrayA = [].concat(...this.dex)
+        const flatArray = [...new Set(flatArrayA)]
+        let missingpokemon=[]
+        missingpokemon=allDex.filter((x)=>!flatArray.includes(x))
+        let missingpokemonName:string=''
+        let count=0
+        for(let pokemon in missingpokemon){
+            count++
+            missingpokemonName+=(pokemonCal.pokemonlist(`${missingpokemon[pokemon]}.${missingpokemon[pokemon]}`)+`> ${missingpokemon[pokemon]}  `)
+            if(count>=30){
+                break
+            }
+            if(count%3==0) missingpokemonName+='\n\n'
+        }
+       return [missingpokemonName,missingpokemon.length]
+    }
 }
 
 export async function apply(ctx) {
@@ -303,6 +322,25 @@ ${(h('at', { id: (session.userId) }))}
             await session.send(reply)
 
 
+        })
+
+        ctx.command('宝可梦').subcommand('图鉴检查','检查你的图鉴还缺少哪些宝可梦')
+        .action(async ({ session }) => {
+            const [player] = await ctx.database.get('pokebattle', { id: session.userId })
+            if (!player) {
+                await session.execute('签到')
+                return
+            }
+            const pokedex = new Pokedex(player)
+           const miss= pokedex.find(player.lap)
+           if (miss[0]==='') {
+                return `你当前图鉴已经收集完整`
+           }
+          const md =`查询中...
+          
+${miss[0]}
+你还有${miss[1]}只宝可梦没有收集`
+           await session.send(md)
         })
 
 }
